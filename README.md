@@ -110,45 +110,261 @@
 
 ---
 
-## Развёртывание
+## Развернуть у себя: пошаговый гайд для новичков
 
-### Docker (рекомендуется)
+Вот три способа — от самого простого к самому правильному.
 
-```bash
-docker build -t dashboard .
-docker run -d -p 8799:8799 --memory=128m --name dashboard dashboard
+---
+
+### Способ 1: Локально на компьютере (5 минут, для попробовать)
+
+**Нужно:** компьютер с Windows / Mac / Linux. Больше ничего.
+
+**Шаг 1 — Установите Node.js**
+
+Зайдите на [nodejs.org](https://nodejs.org), скачайте LTS-версию и установите. Это бесплатно.
+
+Проверьте что установилось — откройте терминал (на Mac: `Cmd+Space` → «Терминал», на Windows: `Win` → «cmd») и введите:
+
+```
+node --version
 ```
 
-После запуска дашборд доступен на порту `8799`.
+Должно написать что-то вроде `v20.11.0`. Если написало — всё хорошо.
 
-### Вручную
+**Шаг 2 — Скачайте проект**
+
+На странице репозитория нажмите **Code → Download ZIP**, разархивируйте куда удобно. Или через терминал:
+
+```bash
+git clone https://github.com/lexamarketolog/interactive-dashboard.git
+cd interactive-dashboard
+```
+
+**Шаг 3 — Установите зависимости и запустите**
 
 ```bash
 npm install
 node server.js
 ```
 
-### Caddy / nginx (reverse proxy)
+Вы увидите строку:
+```
+Valta dashboard → http://localhost:8799
+```
 
-Чтобы раздать дашборд по пути `/example/` вашего домена, добавьте в конфиг Caddy:
+**Шаг 4 — Откройте в браузере**
+
+Перейдите на [http://localhost:8799](http://localhost:8799). Пароль: `000111`.
+
+> Чтобы остановить — нажмите `Ctrl+C` в терминале.
+
+---
+
+### Способ 2: На сервере через Docker (рекомендуется для продакшена)
+
+**Нужно:** VPS/сервер (любой — Timeweb, Selectel, Hetzner), Docker.
+
+**Шаг 1 — Установите Docker на сервер**
+
+Подключитесь к серверу по SSH и выполните:
+
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+Проверьте:
+```bash
+docker --version
+```
+
+**Шаг 2 — Скопируйте файлы проекта на сервер**
+
+Скачайте архив с GitHub и распакуйте, или через git:
+
+```bash
+git clone https://github.com/lexamarketolog/interactive-dashboard.git
+cd interactive-dashboard
+```
+
+**Шаг 3 — Соберите образ и запустите контейнер**
+
+```bash
+docker build -t dashboard .
+docker run -d \
+  --name dashboard \
+  --restart unless-stopped \
+  -p 8799:8799 \
+  --memory=128m \
+  dashboard
+```
+
+Флаги:
+- `-d` — запуск в фоне
+- `--restart unless-stopped` — автозапуск после перезагрузки сервера
+- `-p 8799:8799` — порт (можно поменять на любой свободный)
+- `--memory=128m` — ограничение памяти
+
+**Шаг 4 — Проверьте**
+
+```bash
+docker ps
+```
+
+Вы увидите контейнер со статусом `Up`. Дашборд доступен на `http://ваш-ip:8799`.
+
+**Полезные команды:**
+
+```bash
+docker logs dashboard        # посмотреть логи
+docker restart dashboard     # перезапустить (сбрасывает данные в памяти)
+docker stop dashboard        # остановить
+docker rm dashboard          # удалить контейнер
+```
+
+---
+
+### Способ 3: С доменом и HTTPS через Caddy (как у нас)
+
+Если хочется красивый URL вроде `reports.yourcompany.ru` с сертификатом.
+
+**Шаг 1 — Направьте DNS**
+
+В панели вашего домен-провайдера создайте A-запись:
+```
+reports.yourcompany.ru → IP вашего сервера
+```
+
+Изменения DNS могут занять от 5 минут до 24 часов.
+
+**Шаг 2 — Установите Caddy**
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install caddy
+```
+
+**Шаг 3 — Настройте Caddy**
+
+Откройте `/etc/caddy/Caddyfile`:
+
+```bash
+sudo nano /etc/caddy/Caddyfile
+```
+
+Добавьте блок:
 
 ```caddy
-handle_path /example* {
+reports.yourcompany.ru {
     reverse_proxy 127.0.0.1:8799
 }
 ```
 
-WebSocket-соединение подключается автоматически — по пути `/example/ws` в продакшене или `/ws` при прямом обращении к порту.
+**Если хотите дашборд по пути `/reports/`, а не на отдельном поддомене:**
 
-### Смена пароля
+```caddy
+yourcompany.ru {
+    # ... остальные роуты ...
 
-В `dashboard.html` найдите строку:
+    handle_path /reports* {
+        reverse_proxy 127.0.0.1:8799
+    }
+}
+```
+
+**Шаг 4 — Перезапустите Caddy**
+
+```bash
+sudo systemctl reload caddy
+```
+
+Caddy автоматически получит SSL-сертификат от Let's Encrypt. Через минуту дашборд будет доступен по HTTPS.
+
+---
+
+### Настройка под свои данные
+
+#### Сменить пароль
+
+В `dashboard.html` найдите строку (~430-я):
 
 ```js
 const PASS = '000111';
 ```
 
-И замените на свой пароль.
+Замените на свой пароль. Затем пересоберите Docker-образ:
+
+```bash
+docker stop dashboard && docker rm dashboard
+docker build -t dashboard .
+docker run -d --name dashboard --restart unless-stopped -p 8799:8799 dashboard
+```
+
+#### Переименовать бренды
+
+Найдите в `dashboard.html`:
+
+```js
+const BRAND_META = {
+  brand_a: {label:'Бренд A', color:'#2563EB', mid:'#93C5FD'},
+  brand_b: {label:'Бренд B', color:'#7C3AED', mid:'#C4B5FD'},
+  brand_c: {label:'Бренд C', color:'#059669', mid:'#6EE7B7'},
+};
+```
+
+Замените `'Бренд A'` на имя вашего проекта/клиента.
+
+#### Загрузить свои данные
+
+Данные находятся в константе `RAW` (~236-я строка). Каждая строка — это один месяц:
+
+```js
+{m:'2025-01', i:1218748, c:14344, s:215771, b:35.36, d:1.30, j:63, k:147, p:77, r:434315}
+```
+
+| Поле | Что значит |
+|------|-----------|
+| `m`  | Месяц в формате `ГГГГ-ММ` |
+| `i`  | Показы |
+| `c`  | Клики |
+| `s`  | Расход (₽) |
+| `b`  | Отказы (%) |
+| `d`  | Глубина просмотра |
+| `j`  | Обращения в чат |
+| `k`  | Корзины |
+| `p`  | Покупки |
+| `r`  | Доход (₽) |
+
+Замените массив данными из вашего рекламного кабинета. Можно вставить данные только для одного бренда — остальные просто оставить пустыми массивами.
+
+#### Добавить или убрать бренды
+
+По умолчанию три вкладки. Чтобы добавить четвёртую:
+
+1. В `BRAND_META` добавьте новый объект:
+   ```js
+   brand_d: {label:'Бренд D', color:'#DC2626', mid:'#FCA5A5'},
+   ```
+
+2. В `RAW` добавьте массив данных:
+   ```js
+   brand_d: [
+     {m:'2025-01', ...},
+   ],
+   ```
+
+3. В HTML добавьте вкладку:
+   ```html
+   <button class="tab" data-brand="brand_d">Бренд D</button>
+   ```
+
+4. В CSS добавьте цвет активной вкладки:
+   ```css
+   .tab[data-brand=brand_d].active{background:#DC2626}
+   ```
 
 ---
 
@@ -162,6 +378,8 @@ Dockerfile       — сборка образа на node:20-alpine
 ```
 
 Внешних баз данных нет — состояние хранится в памяти сервера. При перезапуске контейнера данные возвращаются к исходным из `dashboard.html`.
+
+> **Важно:** Комментарии, предложения и правки, внесённые через браузер, хранятся в памяти сервера — они сбрасываются при `docker restart`. Чтобы сохранять правки постоянно — нужно экспортировать через CSV или реализовать сохранение на диск (см. `server.js`).
 
 ---
 
