@@ -111,7 +111,7 @@ thead th{background:#f8fafc;color:#64748b;font-weight:600;padding:9px 10px;text-
 thead th:first-child{text-align:left;width:76px}
 tbody tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
 tbody tr:hover{background:#f8fafc}
-tbody td{padding:7px 10px;text-align:right;color:#334155}
+tbody td{padding:7px 10px;text-align:right;color:#334155;position:relative}
 tbody td:first-child{text-align:left;font-weight:600;color:#1e293b}
 tfoot tr{border-top:2px solid #e2e8f0;background:#f8fafc;position:sticky;bottom:0;z-index:2}
 tfoot td{padding:8px 10px;text-align:right;font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap}
@@ -153,6 +153,85 @@ td.has-delta input{width:auto;flex:1;min-width:0}
 /* Remote editor highlight */
 td.remote-edit{outline:2px solid var(--re-color);background:color-mix(in srgb, var(--re-color) 12%, white)!important}
 td.remote-edit::after{content:var(--re-name,'');position:absolute;top:-18px;left:0;background:var(--re-color);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px 4px 4px 0;white-space:nowrap;pointer-events:none;z-index:10}
+
+/* ── COMMENTS ──────────────────────────────────────────────────────────────── */
+.comment-dot{position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:#f59e0b;cursor:pointer;z-index:4;transition:transform .12s;box-shadow:0 0 0 1.5px #fff}
+.comment-dot:hover{transform:scale(1.6)}
+.chart-cmts-btn{border:none;background:none;border-radius:5px;padding:2px 7px;font-size:11px;color:#94a3b8;cursor:pointer;margin-left:6px;transition:all .15s;vertical-align:middle}
+.chart-cmts-btn:hover{background:#eff6ff;color:#2563EB}
+.chart-cmts-btn.has-cmts{background:#fef9c3;color:#92400e}
+.cp-overlay{position:fixed;inset:0;background:rgba(15,23,42,.28);z-index:990;display:none}
+.cp-panel{position:fixed;top:0;right:-380px;width:350px;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.14);z-index:991;display:flex;flex-direction:column;transition:right .24s cubic-bezier(.4,0,.2,1)}
+.cp-panel.open{right:0}
+.cp-head{padding:14px 16px 12px;border-bottom:1px solid #e2e8f0;display:flex;align-items:flex-start;gap:10px}
+.cp-head-info{flex:1;min-width:0}
+.cp-title{font-size:13px;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.cp-close{width:28px;height:28px;border:none;background:#f1f5f9;border-radius:7px;cursor:pointer;font-size:16px;color:#64748b;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:all .12s}
+.cp-close:hover{background:#fee2e2;color:#dc2626}
+.cp-thread{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.cp-empty{text-align:center;color:#94a3b8;font-size:12px;padding:32px 0}
+.cp-cmt{background:#f8fafc;border-radius:10px;padding:10px 12px}
+.cp-cmt-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cp-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.cp-av.sm{width:20px;height:20px;font-size:9px}
+.cp-author{font-size:12px;font-weight:600;color:#1e293b}
+.cp-time{font-size:10px;color:#94a3b8;margin-left:auto;white-space:nowrap}
+.cp-text{font-size:12.5px;color:#334155;line-height:1.5;word-break:break-word}
+.cp-rep-btn{border:none;background:none;font-size:11px;color:#94a3b8;cursor:pointer;margin-top:4px;padding:0;transition:color .12s;display:inline-block}
+.cp-rep-btn:hover{color:#2563EB}
+.cp-replies{margin-top:8px;border-top:1px solid #e2e8f0;padding-top:8px;display:flex;flex-direction:column;gap:8px}
+.cp-reply .cp-cmt-hd{margin-bottom:3px}
+.cp-input-wrap{padding:10px 12px;border-top:1px solid #e2e8f0}
+.cp-rep-hint{font-size:11px;color:#92400e;background:#fffbeb;border-radius:6px;padding:4px 10px;margin-bottom:6px;display:none;align-items:center;justify-content:space-between}
+.cp-rep-hint.show{display:flex}
+.cp-rep-hint button{border:none;background:none;cursor:pointer;font-size:14px;color:#92400e;line-height:1;padding:0}
+.cp-ta{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12.5px;resize:none;outline:none;font-family:inherit;color:#1e293b;line-height:1.5;transition:border .15s}
+.cp-ta:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.cp-send-row{display:flex;justify-content:flex-end;margin-top:7px}
+.cp-send{padding:6px 16px;background:#2563EB;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s}
+.cp-send:hover{background:#1d4ed8}
+
+/* ── QUARTER GROUPING ──────────────────────────────────────────────────────────── */
+tr.q-hdr td{background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;cursor:pointer;user-select:none;border-top:2px solid #e2e8f0}
+tr.q-hdr:hover td{background:#e2e8f0}
+.q-icon{display:inline-block;width:14px;text-align:center;margin-right:4px;font-style:normal;font-size:12px}
+tr.q-hidden{display:none}
+
+/* ── FILTERS ────────────────────────────────────────────────────────────────────── */
+.filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 20px;border-top:1px solid #e2e8f0;background:#fafbfc}
+.filter-chip{padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;font-size:11px;font-weight:600;color:#64748b;background:#fff;cursor:pointer;transition:all .15s;white-space:nowrap}
+.filter-chip:hover{border-color:#93c5fd;color:#1d4ed8;background:#eff6ff}
+.filter-chip.on{background:#eff6ff;border-color:#3b82f6;color:#1d4ed8}
+.f-sep{width:1px;height:18px;background:#e2e8f0;flex-shrink:0}
+.filter-label{font-size:11px;color:#94a3b8;font-weight:500;white-space:nowrap}
+
+/* ── SUGGESTED EDITS ────────────────────────────────────────────────────────────── */
+.sg-mode-btn{padding:5px 12px;background:#fff;border:1px solid #e2e8f0;color:#64748b;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.sg-mode-btn.on{background:#fff7ed;border-color:#fb923c;color:#c2410c}
+td.td-sg-mine{background:#fff7ed!important;box-shadow:inset 0 0 0 1.5px #fb923c}
+td.td-sg-mine input{color:#c2410c!important}
+.sg-mine-badge{position:absolute;top:2px;left:2px;font-size:9px;color:#fb923c;pointer-events:none;background:#fff7ed;padding:0 2px;border-radius:2px;line-height:1.4}
+.sg-dot{position:absolute;top:2px;left:2px;width:8px;height:8px;border-radius:50%;background:#f97316;z-index:4;cursor:pointer;box-shadow:0 0 0 1.5px #fff;animation:sg-pulse 2s infinite}
+@keyframes sg-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.sg-popup{position:absolute;top:calc(100% + 5px);left:0;background:#1e293b;border-radius:10px;padding:12px 14px;z-index:100;min-width:200px;box-shadow:0 8px 28px rgba(0,0,0,.22)}
+.sg-popup-who{font-size:10px;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.sg-popup-val{font-size:16px;font-weight:700;color:#fb923c;margin-bottom:2px}
+.sg-popup-was{font-size:11px;color:#64748b;margin-bottom:10px}
+.sg-popup-btns{display:flex;gap:6px}
+.sg-accept{flex:1;padding:6px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:background .12s}
+.sg-accept:hover{background:#16a34a}
+.sg-reject{flex:1;padding:6px;background:#ef4444;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:background .12s}
+.sg-reject:hover{background:#dc2626}
+
+/* ── RESOLVE COMMENTS ───────────────────────────────────────────────────────────── */
+.cp-rep-btn.cp-resolve-btn{color:#059669}
+.cp-rep-btn.cp-resolve-btn:hover{color:#047857}
+.cp-cmt.resolved{opacity:.55}
+.cp-resolved-badge{font-size:10px;color:#059669;font-weight:700;background:#dcfce7;border-radius:4px;padding:1px 6px;display:inline-block;margin-bottom:4px}
+.cp-show-resolved-btn{border:none;background:none;font-size:11px;color:#94a3b8;cursor:pointer;padding:0;transition:color .12s}
+.cp-show-resolved-btn:hover{color:#1d4ed8}
+.cp-dot-resolved{background:#059669!important}
 </style>
 </head>
 <body>
@@ -202,10 +281,10 @@ td.remote-edit::after{content:var(--re-name,'');position:absolute;top:-18px;left
   <div class="kpis" id="kpis"></div>
 
   <div class="charts-grid">
-    <div class="chart-card"><h3>Расход vs Доход <span>тыс. ₽</span></h3><div class="chart-wrap"><canvas id="chart-sr"></canvas></div></div>
-    <div class="chart-card"><h3>Показы &amp; Клики <span>÷1000 / шт</span></h3><div class="chart-wrap"><canvas id="chart-ic"></canvas></div></div>
-    <div class="chart-card"><h3>ROMI &amp; ДРР <span>%</span></h3><div class="chart-wrap"><canvas id="chart-romi"></canvas></div></div>
-    <div class="chart-card"><h3>Покупки &amp; CPO <span>шт / ₽</span></h3><div class="chart-wrap"><canvas id="chart-purch"></canvas></div></div>
+    <div class="chart-card"><h3>Расход vs Доход <span>тыс. ₽</span><button class="chart-cmts-btn" data-chartid="chart-sr" onclick="openChartComments('chart-sr')">💬</button></h3><div class="chart-wrap"><canvas id="chart-sr"></canvas></div></div>
+    <div class="chart-card"><h3>Показы &amp; Клики <span>÷1000 / шт</span><button class="chart-cmts-btn" data-chartid="chart-ic" onclick="openChartComments('chart-ic')">💬</button></h3><div class="chart-wrap"><canvas id="chart-ic"></canvas></div></div>
+    <div class="chart-card"><h3>ROMI &amp; ДРР <span>%</span><button class="chart-cmts-btn" data-chartid="chart-romi" onclick="openChartComments('chart-romi')">💬</button></h3><div class="chart-wrap"><canvas id="chart-romi"></canvas></div></div>
+    <div class="chart-card"><h3>Покупки &amp; CPO <span>шт / ₽</span><button class="chart-cmts-btn" data-chartid="chart-purch" onclick="openChartComments('chart-purch')">💬</button></h3><div class="chart-wrap"><canvas id="chart-purch"></canvas></div></div>
   </div>
 
   <div class="analytics" id="analytics"></div>
@@ -213,7 +292,8 @@ td.remote-edit::after{content:var(--re-name,'');position:absolute;top:-18px;left
   <div class="table-section">
     <div class="table-header">
       <h2>Данные по месяцам</h2>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="sg-mode-btn" id="sg-mode-btn" onclick="toggleSuggestMode()">✏️ Предложить</button>
         <button class="add-forecast-btn" onclick="addForecastRow()">+ Прогноз</button>
         <button class="export-btn" onclick="exportCSV()">↓ CSV</button>
         <div class="table-hint">
@@ -223,11 +303,42 @@ td.remote-edit::after{content:var(--re-name,'');position:absolute;top:-18px;left
         </div>
       </div>
     </div>
+    <div class="filter-bar">
+      <span class="filter-label">Фильтр:</span>
+      <button class="filter-chip" id="fc-forecast" onclick="toggleHideForecast()">Скрыть прогноз</button>
+      <div class="f-sep"></div>
+      <span class="filter-label">Год:</span>
+      <button class="filter-chip on" id="fc-all"  onclick="setYearFilter('all')">Все</button>
+      <button class="filter-chip" id="fc-2024" onclick="setYearFilter('2024')">2024</button>
+      <button class="filter-chip" id="fc-2025" onclick="setYearFilter('2025')">2025</button>
+      <button class="filter-chip" id="fc-2026" onclick="setYearFilter('2026')">2026</button>
+    </div>
     <div class="table-scroll"><table><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table></div>
   </div>
 </div>
 
 <div class="share-toast" id="share-toast"></div>
+
+<!-- ── COMMENT PANEL ──────────────────────────────────────────── -->
+<div class="cp-overlay" id="cp-overlay" onclick="closeCommentPanel()"></div>
+<div class="cp-panel" id="cp-panel">
+  <div class="cp-head">
+    <div class="cp-head-info">
+      <div class="cp-title" id="cp-title">Комментарии</div>
+      <div class="cp-sub"   id="cp-sub"></div>
+    </div>
+    <button class="cp-close" onclick="closeCommentPanel()">×</button>
+  </div>
+  <div class="cp-thread" id="cp-thread"></div>
+  <div class="cp-input-wrap">
+    <div class="cp-rep-hint" id="cp-rep-hint">
+      <span id="cp-rep-label">Ответ</span>
+      <button onclick="cancelReply()">×</button>
+    </div>
+    <textarea class="cp-ta" id="cp-ta" rows="3" placeholder="Написать комментарий..."></textarea>
+    <div class="cp-send-row"><button class="cp-send" onclick="submitComment()">Отправить</button></div>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -475,6 +586,7 @@ window.checkPass = function() {
 // ═══════════════════════════════════════════════════════════════
 let ws = null;
 let myUserId = null;
+let myUser   = null;
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -514,6 +626,9 @@ function handleWS(msg) {
   switch (msg.type) {
     case 'welcome':
       myUserId = msg.me?.id;
+      myUser   = msg.me || null;
+      if (msg.comments)     { comments    = msg.comments; }
+      if (msg.suggestions)  { suggestions = msg.suggestions; }
       if (msg.state) { state = msg.state; fullRefresh(); }
       renderUsers(msg.users || []);
       initHistory();
@@ -547,6 +662,33 @@ function handleWS(msg) {
       if (msg.userId !== myUserId) {
         state[msg.brand].splice(msg.ri, 1);
         if (msg.brand === brand) { renderTable(); renderKPIs(); updateChartsInPlace(); }
+      }
+      break;
+    case 'add_comment':
+      if (msg.userId !== myUserId) applyComment(msg);
+      break;
+    case 'add_reply':
+      if (msg.userId !== myUserId) applyReply(msg);
+      break;
+    case 'resolve_comment':
+      if (msg.userId !== myUserId) applyResolveComment(msg);
+      break;
+    case 'suggest':
+      if (msg.userId !== myUserId) {
+        suggestions[msg.id] = {id:msg.id, brand:msg.brand, ri:msg.ri, field:msg.field, value:msg.value, original:msg.original, author:msg.author};
+        if (msg.brand === brand) renderSuggestionDots();
+      }
+      break;
+    case 'accept_suggest':
+      if (msg.userId !== myUserId) delete suggestions[msg.sgId];
+      break;
+    case 'reject_suggest':
+      if (msg.userId !== myUserId) {
+        const _sg = suggestions[msg.sgId];
+        const _wasMine = _sg?.author?.id === myUserId;
+        const _sgBrand = _sg?.brand;
+        delete suggestions[msg.sgId];
+        if (_sgBrand === brand) { if (_wasMine) renderTable(); else renderSuggestionDots(); }
       }
       break;
   }
@@ -1024,35 +1166,59 @@ function renderTable() {
   document.getElementById('thead').innerHTML =
     '<tr>' + COLS.map(c=>`<th>${c.l}</th>`).join('') + '</tr>';
 
-  const rows = state[brand].map(compute);
-  document.getElementById('tbody').innerHTML = rows.map((row, ri) => {
+  const allRows = state[brand].map(compute);
+
+  // Apply filters
+  const vis = allRows.map((row, ri) => ({row, ri})).filter(({row}) => {
+    if (filterState.hideForecast && row.forecast) return false;
+    if (filterState.year !== 'all' && !row.m.startsWith(filterState.year)) return false;
+    return true;
+  });
+
+  let lastQ = null;
+  let html  = '';
+
+  vis.forEach(({row, ri}) => {
     const isForecast = !!row.forecast;
-    const trCls = isForecast ? ' class="forecast-row"' : '';
-    // Previous non-forecast row for MoM delta
+    const qk         = quarterOf(row.m);
+    const collapsed  = collapsedQuarters.has(qk);
+
+    // Quarter header row
+    if (qk !== lastQ) {
+      lastQ = qk;
+      const icon = collapsed ? '+' : '−';
+      html += `<tr class="q-hdr" onclick="toggleQuarter('${qk}')"><td colspan="${COLS.length}"><span class="q-icon">${icon}</span>${quarterLabel(qk)}</td></tr>`;
+    }
+
     let prevRow = null;
     if (!isForecast) {
       for (let j = ri - 1; j >= 0; j--) {
-        if (!rows[j].forecast) { prevRow = rows[j]; break; }
+        if (!allRows[j].forecast) { prevRow = allRows[j]; break; }
       }
     }
-    return `<tr data-ri="${ri}"${trCls}>${COLS.map(col => {
-      const vcls = col.cls ? col.cls(row) : '';
-      if (col.k === 'm') {
-        const del = isForecast ? `<button class="del-row-btn" onclick="deleteRow(${ri})" title="Удалить">×</button>` : '';
-        return `<td>${col.fmt(row)}${del}</td>`;
-      }
-      if (col.ed === true) {
-        const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
-        return `<td class="editable ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${col.fmt(row)}" inputmode="decimal">${badge}</td>`;
-      }
-      if (col.ed === 'rev') {
-        const dv = col.val ? col.val(row) : col.fmt(row);
-        const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
-        return `<td class="formula ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${dv}" inputmode="decimal">${badge}</td>`;
-      }
-      return `<td class="${vcls}">${col.fmt(row)}</td>`;
-    }).join('')}</tr>`;
-  }).join('');
+
+    const trClass = [isForecast ? 'forecast-row' : '', collapsed ? 'q-hidden' : ''].filter(Boolean).join(' ');
+    html += `<tr data-ri="${ri}" data-quarter="${qk}"${trClass ? ` class="${trClass}"` : ''}>` +
+      COLS.map(col => {
+        const vcls = col.cls ? col.cls(row) : '';
+        if (col.k === 'm') {
+          const del = isForecast ? `<button class="del-row-btn" onclick="deleteRow(${ri})" title="Удалить">×</button>` : '';
+          return `<td>${col.fmt(row)}${del}</td>`;
+        }
+        if (col.ed === true) {
+          const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
+          return `<td class="editable ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${col.fmt(row)}" inputmode="decimal">${badge}</td>`;
+        }
+        if (col.ed === 'rev') {
+          const dv = col.val ? col.val(row) : col.fmt(row);
+          const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
+          return `<td class="formula ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${dv}" inputmode="decimal">${badge}</td>`;
+        }
+        return `<td class="${vcls}">${col.fmt(row)}</td>`;
+      }).join('') + '</tr>';
+  });
+
+  document.getElementById('tbody').innerHTML = html;
 
   // Attach events
   document.querySelectorAll('#tbody input').forEach(inp => {
@@ -1063,8 +1229,10 @@ function renderTable() {
     inp.addEventListener('blur',    onCellBlur);
   });
 
-  renderTotals(rows);
+  renderTotals(vis.map(({row}) => row));
   restoreRemoteEditors();
+  renderCommentDots();
+  renderSuggestionDots();
 }
 
 function renderTotals(rows) {
@@ -1183,6 +1351,9 @@ function onCellKeydown(e) {
   const td    = e.target.closest('td');
   const ri    = +tr.dataset.ri;
   const field = td.dataset.field;
+  const col   = COLS.find(c => c.k === field);
+  // In suggest mode: blur triggers onCellEdit which handles the suggestion
+  if (suggestMode && col?.ed === true) { e.target.blur(); return; }
   const result = _applyInput(e.target, tr, ri, field);
   if (result !== null) {
     if (result?.rev && result?.updates) {
@@ -1206,6 +1377,30 @@ function onCellEdit(e) {
   const ri    = +tr.dataset.ri;
   const field = td.dataset.field;
   const col   = COLS.find(c => c.k === field);
+
+  // Suggest mode: convert edit to a proposal, revert local state
+  if (suggestMode && col?.ed === true && sgPreEditValue !== null) {
+    const rawStr  = e.target.value.replace(/\s/g,'').replace(',','.');
+    const proposed = parseFloat(rawStr);
+    if (!isNaN(proposed) && proposed !== sgPreEditValue) {
+      const sgId   = Date.now() + '' + Math.random().toString(36).slice(2,7);
+      const author = myUser || {id:0, name:'Аноним', color:'#94a3b8'};
+      const sg     = {id:sgId, brand, ri, field, value:proposed, original:sgPreEditValue, author};
+      suggestions[sgId] = sg;
+      sendWS({type:'suggest', ...sg});
+      // Revert state to original value
+      state[brand][ri][field] = sgPreEditValue;
+      patchComputedCells(tr, compute(state[brand][ri]));
+      updateChartsInPlace(); renderKPIs();
+    } else {
+      // No valid change — restore input
+      e.target.value = state[brand][ri][field];
+    }
+    sgPreEditValue = null;
+    renderSuggestionDots();
+    return;
+  }
+  sgPreEditValue = null;
 
   const histLabel = `${BRAND_META[brand].label} · ${monthLabel(state[brand][ri].m)} · ${col?.l || field}`;
 
@@ -1240,6 +1435,7 @@ function onCellFocus(e) {
   const ri    = +tr.dataset.ri;
   const field = td.dataset.field;
   sendWS({type:'focus', brand, ri, field});
+  if (suggestMode) sgPreEditValue = state[brand]?.[ri]?.[field] ?? null;
 }
 
 function onCellBlur(e) {
@@ -1278,6 +1474,362 @@ document.querySelectorAll('.tab').forEach(btn => {
 fullRefresh();
 connectWS();
 initHistory();
+
+// ═══════════════════════════════════════════════════════════════
+//  COMMENTS
+// ═══════════════════════════════════════════════════════════════
+let comments      = {};   // {target: [{id, text, author, time, replies:[]}]}
+let commentTarget = null; // currently open panel target key
+let replyingTo    = null; // comment id being replied to
+
+function cmtKey(brd, month, field) { return `${brd}:${month}:${field}`; }
+function getCmts(t)  { return comments[t] || []; }
+function hasCmts(t)  { return !!(comments[t]?.length); }
+
+function colLabel(field) { return COLS.find(c => c.k === field)?.l || field; }
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function fmtCmtTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString('ru',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).replace(',','');
+}
+
+window.openCommentPanel = function(target, title, sub) {
+  commentTarget = target;
+  replyingTo    = null;
+  document.getElementById('cp-title').textContent = title;
+  document.getElementById('cp-sub').textContent   = sub || '';
+  document.getElementById('cp-rep-hint').classList.remove('show');
+  document.getElementById('cp-ta').placeholder = 'Написать комментарий...';
+  renderCommentThread();
+  document.getElementById('cp-panel').classList.add('open');
+  document.getElementById('cp-overlay').style.display = 'block';
+  setTimeout(() => document.getElementById('cp-ta')?.focus(), 260);
+};
+
+window.closeCommentPanel = function() {
+  document.getElementById('cp-panel').classList.remove('open');
+  document.getElementById('cp-overlay').style.display = 'none';
+  commentTarget = null;
+  replyingTo    = null;
+};
+
+window.openChartComments = function(chartId) {
+  const target = `chart:${brand}:${chartId}`;
+  const names  = {'chart-sr':'Расход vs Доход','chart-ic':'Показы и Клики','chart-romi':'ROMI и ДРР','chart-purch':'Покупки и CPO'};
+  openCommentPanel(target, names[chartId] || chartId, BRAND_META[brand].label);
+};
+
+window.startReply = function(commentId) {
+  replyingTo = commentId;
+  const cmt  = getCmts(commentTarget).find(c => c.id === commentId);
+  document.getElementById('cp-rep-label').textContent = 'Ответ: ' + (cmt?.author?.name || 'комментарий');
+  document.getElementById('cp-rep-hint').classList.add('show');
+  const ta = document.getElementById('cp-ta');
+  ta.placeholder = 'Написать ответ...';
+  ta.focus();
+};
+
+window.cancelReply = function() {
+  replyingTo = null;
+  document.getElementById('cp-rep-hint').classList.remove('show');
+  document.getElementById('cp-ta').placeholder = 'Написать комментарий...';
+};
+
+window.submitComment = function() {
+  const ta   = document.getElementById('cp-ta');
+  const text = ta.value.trim();
+  if (!text || !commentTarget) return;
+  const author = myUser || {id:0, name:'Аноним', color:'#94a3b8'};
+
+  if (replyingTo) {
+    const reply = {id: Date.now() + Math.random(), text, author, time: Date.now()};
+    const msg   = {type:'add_reply', target:commentTarget, commentId:replyingTo, reply};
+    applyReply(msg);
+    sendWS(msg);
+    cancelReply();
+  } else {
+    const comment = {id: Date.now() + Math.random(), text, author, time: Date.now(), replies:[]};
+    const msg     = {type:'add_comment', target:commentTarget, comment};
+    applyComment(msg);
+    sendWS(msg);
+  }
+  ta.value = '';
+};
+
+function applyComment(msg) {
+  if (!comments[msg.target]) comments[msg.target] = [];
+  comments[msg.target].push(msg.comment);
+  if (commentTarget === msg.target) renderCommentThread();
+  renderCommentDots();
+}
+
+function applyReply(msg) {
+  const cmt = getCmts(msg.target).find(c => c.id === msg.commentId);
+  if (cmt) { if (!cmt.replies) cmt.replies = []; cmt.replies.push(msg.reply); }
+  if (commentTarget === msg.target) renderCommentThread();
+}
+
+function renderCommentThread() {
+  const thread = document.getElementById('cp-thread');
+  if (!thread) return;
+  const all  = getCmts(commentTarget);
+  const cmts = showResolved ? all : all.filter(c => !c.resolved);
+  const resolvedN = all.filter(c => c.resolved).length;
+
+  const headerHtml = resolvedN > 0
+    ? `<div style="text-align:right;margin-bottom:6px"><button class="cp-show-resolved-btn" onclick="toggleShowResolved()">${showResolved ? '↑ Скрыть решённые' : `↓ Показать решённые (${resolvedN})`}</button></div>`
+    : '';
+
+  if (!all.length) {
+    thread.innerHTML = '<div class="cp-empty">Комментариев пока нет</div>';
+    return;
+  }
+  if (!cmts.length) {
+    thread.innerHTML = headerHtml + '<div class="cp-empty">Активных комментариев нет</div>';
+    return;
+  }
+
+  thread.innerHTML = headerHtml + cmts.map(c => `
+    <div class="cp-cmt${c.resolved ? ' resolved' : ''}">
+      ${c.resolved ? '<div class="cp-resolved-badge">✓ Решено</div>' : ''}
+      <div class="cp-cmt-hd">
+        <div class="cp-av" style="background:${c.author.color}">${escHtml(c.author.name[0])}</div>
+        <span class="cp-author">${escHtml(c.author.name)}</span>
+        <span class="cp-time">${fmtCmtTime(c.time)}</span>
+      </div>
+      <div class="cp-text">${escHtml(c.text)}</div>
+      ${c.replies?.length ? `<div class="cp-replies">${c.replies.map(r=>`
+        <div class="cp-reply">
+          <div class="cp-cmt-hd">
+            <div class="cp-av sm" style="background:${r.author.color}">${escHtml(r.author.name[0])}</div>
+            <span class="cp-author">${escHtml(r.author.name)}</span>
+            <span class="cp-time">${fmtCmtTime(r.time)}</span>
+          </div>
+          <div class="cp-text">${escHtml(r.text)}</div>
+        </div>`).join('')}</div>` : ''}
+      ${!c.resolved ? `<div style="display:flex;gap:10px;margin-top:4px">
+        <button class="cp-rep-btn" onclick="startReply(${JSON.stringify(c.id)})">↩ Ответить</button>
+        <button class="cp-rep-btn cp-resolve-btn" onclick="resolveComment(${JSON.stringify(c.id)})">✓ Решено</button>
+      </div>` : ''}
+    </div>`).join('');
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function renderCommentDots() {
+  // Table cell dots
+  document.querySelectorAll('#tbody td[data-field]').forEach(td => {
+    const tr    = td.closest('tr');
+    if (!tr) return;
+    const ri    = +tr.dataset.ri;
+    const field = td.dataset.field;
+    const row   = state[brand]?.[ri];
+    if (!row) return;
+    const target   = cmtKey(brand, row.m, field);
+    const all      = getCmts(target);
+    let dot        = td.querySelector('.comment-dot');
+    if (all.length) {
+      if (!dot) {
+        dot = document.createElement('span');
+        dot.className = 'comment-dot';
+        dot.addEventListener('click', e => {
+          e.stopPropagation();
+          openCommentPanel(target, colLabel(field), monthLabel(row.m));
+        });
+        td.appendChild(dot);
+      }
+      const unresolved = all.filter(c => !c.resolved).length;
+      dot.classList.toggle('cp-dot-resolved', unresolved === 0);
+      const n = unresolved || all.length;
+      dot.title = (unresolved === 0 ? '✓ Всё решено · ' : '') + n + (n % 10 === 1 && n % 100 !== 11 ? ' комментарий' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? ' комментария' : ' комментариев');
+    } else if (dot) {
+      dot.remove();
+    }
+  });
+  // Chart comment buttons
+  document.querySelectorAll('.chart-cmts-btn').forEach(btn => {
+    const chartId = btn.dataset.chartid;
+    const target  = `chart:${brand}:${chartId}`;
+    const n       = getCmts(target).length;
+    btn.textContent = n ? `💬 ${n}` : '💬';
+    btn.classList.toggle('has-cmts', n > 0);
+  });
+}
+
+// Enter to submit (Shift+Enter = newline)
+document.getElementById('cp-ta').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  QUARTER GROUPING
+// ═══════════════════════════════════════════════════════════════
+let collapsedQuarters = new Set();
+
+function quarterOf(m) {
+  const [y, mo] = m.split('-').map(Number);
+  return `${y}-Q${Math.ceil(mo / 3)}`;
+}
+function quarterLabel(qk) {
+  const [y, q] = qk.split('-');
+  return `${q} · ${y}`;
+}
+window.toggleQuarter = function(qk) {
+  if (collapsedQuarters.has(qk)) collapsedQuarters.delete(qk);
+  else collapsedQuarters.add(qk);
+  renderTable();
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════════════════════════════
+let filterState = { hideForecast: false, year: 'all' };
+
+window.toggleHideForecast = function() {
+  filterState.hideForecast = !filterState.hideForecast;
+  document.getElementById('fc-forecast')?.classList.toggle('on', filterState.hideForecast);
+  renderTable();
+};
+window.setYearFilter = function(y) {
+  filterState.year = y;
+  ['all','2024','2025','2026'].forEach(v =>
+    document.getElementById('fc-' + v)?.classList.toggle('on', v === y)
+  );
+  renderTable();
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  SUGGESTED EDITS
+// ═══════════════════════════════════════════════════════════════
+let suggestMode    = false;
+let suggestions    = {};
+let sgPreEditValue = null;
+
+window.toggleSuggestMode = function() {
+  suggestMode = !suggestMode;
+  const btn = document.getElementById('sg-mode-btn');
+  btn.classList.toggle('on', suggestMode);
+  btn.textContent = suggestMode ? '✏️ Режим предложений ●' : '✏️ Предложить';
+};
+
+function renderSuggestionDots() {
+  // Clear existing
+  document.querySelectorAll('.sg-dot, .sg-mine-badge').forEach(el => el.remove());
+  document.querySelectorAll('.td-sg-mine').forEach(td => td.classList.remove('td-sg-mine'));
+
+  for (const [sgId, sg] of Object.entries(suggestions)) {
+    if (sg.brand !== brand) continue;
+    const td = document.querySelector(`#tbody tr[data-ri="${sg.ri}"] td[data-field="${sg.field}"]`);
+    if (!td) continue;
+
+    if (sg.author?.id === myUserId) {
+      // My pending suggestion
+      td.classList.add('td-sg-mine');
+      const inp = td.querySelector('input');
+      if (inp && document.activeElement !== inp) inp.value = sg.value;
+      const badge = document.createElement('span');
+      badge.className = 'sg-mine-badge';
+      badge.textContent = '⏳';
+      badge.title = 'Ожидает подтверждения';
+      td.appendChild(badge);
+    } else {
+      // Others' suggestion — show review dot
+      const dot = document.createElement('span');
+      dot.className = 'sg-dot';
+      dot.dataset.sgid = sgId;
+      dot.title = (sg.author?.name || '?') + ' предлагает изменение';
+      const _sgId = sgId, _td = td;
+      dot.addEventListener('click', e => { e.stopPropagation(); showSuggestionPopup(_sgId, _td); });
+      td.appendChild(dot);
+    }
+  }
+}
+
+function showSuggestionPopup(sgId, td) {
+  document.querySelectorAll('.sg-popup').forEach(p => p.remove());
+  const sg = suggestions[sgId];
+  if (!sg) return;
+  const col    = COLS.find(c => c.k === sg.field);
+  const row    = state[brand]?.[sg.ri];
+  if (!row) return;
+  const fmtNew = col?.fmt ? col.fmt({...row, [sg.field]: sg.value}) : sg.value;
+  const fmtOld = col?.fmt ? col.fmt(row) : sg.original;
+
+  const popup = document.createElement('div');
+  popup.className = 'sg-popup';
+  popup.innerHTML = `
+    <div class="sg-popup-who">${escHtml(sg.author?.name || '?')} предлагает:</div>
+    <div class="sg-popup-val">${escHtml(String(fmtNew))}</div>
+    <div class="sg-popup-was">было: ${escHtml(String(fmtOld))}</div>
+    <div class="sg-popup-btns">
+      <button class="sg-accept" onclick="acceptSuggestion('${sgId}')">✓ Принять</button>
+      <button class="sg-reject" onclick="rejectSuggestion('${sgId}')">✗ Отклонить</button>
+    </div>`;
+  td.appendChild(popup);
+  setTimeout(() => {
+    const close = ev => {
+      if (!popup.contains(ev.target)) { popup.remove(); document.removeEventListener('click', close); }
+    };
+    document.addEventListener('click', close);
+  }, 80);
+}
+
+window.acceptSuggestion = function(sgId) {
+  const sg = suggestions[sgId];
+  if (!sg) return;
+  document.querySelectorAll('.sg-popup').forEach(p => p.remove());
+  state[sg.brand][sg.ri][sg.field] = sg.value;
+  sendWS({type:'accept_suggest', sgId});
+  sendWS({type:'edit', brand:sg.brand, ri:sg.ri, field:sg.field, value:sg.value});
+  delete suggestions[sgId];
+  if (sg.brand === brand) { renderTable(); updateChartsInPlace(); renderKPIs(); }
+  pushHistory(`${BRAND_META[sg.brand].label} · принято: ${colLabel(sg.field)}`);
+};
+
+window.rejectSuggestion = function(sgId) {
+  const sg = suggestions[sgId];
+  if (!sg) return;
+  document.querySelectorAll('.sg-popup').forEach(p => p.remove());
+  sendWS({type:'reject_suggest', sgId});
+  const wasMine = sg.author?.id === myUserId;
+  delete suggestions[sgId];
+  if (sg.brand === brand) {
+    if (wasMine) renderTable();
+    else renderSuggestionDots();
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  RESOLVE COMMENTS
+// ═══════════════════════════════════════════════════════════════
+let showResolved = false;
+
+window.toggleShowResolved = function() {
+  showResolved = !showResolved;
+  renderCommentThread();
+};
+
+window.resolveComment = function(commentId) {
+  if (!commentTarget) return;
+  const cmt = getCmts(commentTarget).find(c => c.id === commentId);
+  if (!cmt) return;
+  cmt.resolved = true;
+  sendWS({type:'resolve_comment', target:commentTarget, commentId});
+  renderCommentThread();
+  renderCommentDots();
+};
+
+function applyResolveComment(msg) {
+  const cmt = getCmts(msg.target).find(c => c.id === msg.commentId);
+  if (cmt) cmt.resolved = true;
+  if (commentTarget === msg.target) renderCommentThread();
+  renderCommentDots();
+}
 </script>
 </body>
 </html>

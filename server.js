@@ -42,8 +42,8 @@ wss.on('connection', (ws) => {
   const name  = NAMES[(id - 1)  % NAMES.length] + ' ' + id;
   clients.set(ws, { id, color, name, alive: true });
 
-  // Welcome: send identity + current shared state
-  send(ws, { type: 'welcome', me: { id, color, name }, state: collabState, users: getUsers() });
+  // Welcome: send identity + current shared state + comments + suggestions
+  send(ws, { type: 'welcome', me: { id, color, name }, state: collabState, comments: collabState?._comments || {}, suggestions: collabState?._suggestions || {}, users: getUsers() });
   // Tell everyone else about the new user
   broadcast({ type: 'users', users: getUsers() }, ws);
 
@@ -84,6 +84,43 @@ wss.on('connection', (ws) => {
       if (msg.type === 'delete_forecast_row') {
         if (collabState?.[msg.brand]?.[msg.ri] !== undefined) collabState[msg.brand].splice(msg.ri, 1);
         broadcast({ type: 'delete_forecast_row', brand: msg.brand, ri: msg.ri, userId: user?.id }, ws);
+      }
+
+      if (msg.type === 'add_comment') {
+        if (!collabState) collabState = {};
+        if (!collabState._comments) collabState._comments = {};
+        if (!collabState._comments[msg.target]) collabState._comments[msg.target] = [];
+        collabState._comments[msg.target].push(msg.comment);
+        broadcast({ type: 'add_comment', target: msg.target, comment: msg.comment, userId: user?.id }, ws);
+      }
+
+      if (msg.type === 'add_reply') {
+        const cmt = collabState?._comments?.[msg.target]?.find(c => c.id === msg.commentId);
+        if (cmt) { if (!cmt.replies) cmt.replies = []; cmt.replies.push(msg.reply); }
+        broadcast({ type: 'add_reply', target: msg.target, commentId: msg.commentId, reply: msg.reply, userId: user?.id }, ws);
+      }
+
+      if (msg.type === 'resolve_comment') {
+        const cmt = collabState?._comments?.[msg.target]?.find(c => c.id === msg.commentId);
+        if (cmt) cmt.resolved = true;
+        broadcast({ type: 'resolve_comment', target: msg.target, commentId: msg.commentId, userId: user?.id }, ws);
+      }
+
+      if (msg.type === 'suggest') {
+        if (!collabState) collabState = {};
+        if (!collabState._suggestions) collabState._suggestions = {};
+        collabState._suggestions[msg.id] = msg;
+        broadcast({ type: 'suggest', ...msg, userId: user?.id }, ws);
+      }
+
+      if (msg.type === 'accept_suggest') {
+        if (collabState?._suggestions) delete collabState._suggestions[msg.sgId];
+        broadcast({ type: 'accept_suggest', sgId: msg.sgId, userId: user?.id }, ws);
+      }
+
+      if (msg.type === 'reject_suggest') {
+        if (collabState?._suggestions) delete collabState._suggestions[msg.sgId];
+        broadcast({ type: 'reject_suggest', sgId: msg.sgId, userId: user?.id }, ws);
       }
     } catch (_) {}
   });
