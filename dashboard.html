@@ -148,7 +148,7 @@ td.has-delta input{width:auto;flex:1;min-width:0}
 /* Share */
 .share-btn{padding:6px 14px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
 .share-btn:hover{background:#1d4ed8}
-.share-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:9998;white-space:nowrap}
+.share-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:9998;white-space:nowrap;max-width:90vw;text-align:center}
 .share-toast.show{opacity:1}
 /* Remote editor highlight */
 td.remote-edit{outline:2px solid var(--re-color);background:color-mix(in srgb, var(--re-color) 12%, white)!important}
@@ -232,6 +232,25 @@ td.td-sg-mine input{color:#c2410c!important}
 .cp-show-resolved-btn{border:none;background:none;font-size:11px;color:#94a3b8;cursor:pointer;padding:0;transition:color .12s}
 .cp-show-resolved-btn:hover{color:#1d4ed8}
 .cp-dot-resolved{background:#059669!important}
+/* ── Sort ── */
+.sort-arrow{font-size:9px;color:#94a3b8;margin-left:2px;transition:color .1s}
+th:hover .sort-arrow{color:#2563EB}
+th.th-sorted .sort-arrow{color:#2563EB}
+/* ── Comment hover trigger ── */
+td[data-field]{position:relative}
+.cmt-cell-btn{display:none;position:absolute;top:2px;right:2px;background:rgba(248,250,252,.92);border:none;border-radius:3px;font-size:9px;padding:1px 3px;cursor:pointer;z-index:3;line-height:1.5;color:#94a3b8;transition:color .1s,background .1s}
+.cmt-cell-btn:hover{color:#2563EB;background:#eff6ff}
+tbody tr:hover .cmt-cell-btn{display:block}
+td:has(.comment-dot) .cmt-cell-btn{display:none!important}
+/* ── Emoji reactions ── */
+.cp-reactions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.cp-rxn{border:1px solid #e2e8f0;background:#f8fafc;border-radius:99px;font-size:12px;padding:2px 8px;cursor:pointer;transition:background .1s,border-color .1s;display:flex;align-items:center;gap:3px;line-height:1.4}
+.cp-rxn:hover{background:#eff6ff;border-color:#93c5fd}
+.cp-rxn.my-rxn{background:#eff6ff;border-color:#2563EB;font-weight:600}
+.cp-rxn .rxn-cnt{font-size:11px;color:#64748b}
+.cp-rxn.my-rxn .rxn-cnt{color:#2563EB}
+/* ── View mode badge ── */
+.view-badge{background:#7C3AED;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 10px;letter-spacing:.5px}
 </style>
 </head>
 <body>
@@ -258,6 +277,7 @@ td.td-sg-mine input{color:#c2410c!important}
     <div class="header-right">
       <div class="users-bar" id="users-bar"></div>
       <button class="share-btn" onclick="shareLink()">Поделиться ↗</button>
+      <span id="view-badge" class="view-badge" style="display:none">👁 Просмотр</span>
       <div class="ws-status">
         <div class="ws-dot connecting" id="ws-dot"></div>
         <span id="ws-label">подключение…</span>
@@ -468,6 +488,22 @@ for (const k in RAW) state[k] = RAW[k].map(r => ({...r}));
 const charts = {};
 const remoteEditors = {}; // key="brand_ri_field" → {userId,color,name}
 
+// ── New feature state (must be declared before fullRefresh) ──────
+let collapsedQuarters = new Set();
+let filterState       = { hideForecast: false, year: 'all' };
+let suggestMode       = false;
+let suggestions       = {};
+let sgPreEditValue    = null;
+let showResolved      = false;
+// Comment state (must be before fullRefresh to avoid TDZ)
+let comments      = {};
+let commentTarget = null;
+let replyingTo    = null;
+// Sort state
+let sortState     = {field: null, dir: 1};
+// View-only mode via URL param ?view
+const viewMode    = new URLSearchParams(location.search).has('view');
+
 // ═══════════════════════════════════════════════════════════════
 //  HISTORY (UNDO / REDO)
 // ═══════════════════════════════════════════════════════════════
@@ -544,13 +580,19 @@ document.addEventListener('keydown', e => {
 
 // ─── Share link ─────────────────────────────────────────────────
 window.shareLink = function() {
-  const url = location.origin + (location.pathname.includes('/example') ? '/example/' : location.pathname);
-  navigator.clipboard?.writeText(url).catch(()=>{});
+  const base    = location.origin + (location.pathname.includes('/example') ? '/example/' : location.pathname);
+  const viewUrl = base + '?view';
   const t = document.getElementById('share-toast');
   if (!t) return;
-  t.textContent = `Ссылка скопирована → ${url}  ·  Пароль: 000111`;
+  if (viewMode) {
+    navigator.clipboard?.writeText(viewUrl).catch(()=>{});
+    t.textContent = `Ссылка для просмотра скопирована ✓`;
+  } else {
+    navigator.clipboard?.writeText(base).catch(()=>{});
+    t.innerHTML = `<div>Ссылка скопирована ✓  ·  Пароль: 000111</div><div style="margin-top:3px;font-size:11px;color:#c4b5fd">Только просмотр (без пароля): <span style="user-select:all">${viewUrl}</span></div>`;
+  }
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3500);
+  setTimeout(() => t.classList.remove('show'), 5000);
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -559,7 +601,7 @@ window.shareLink = function() {
 const PASS = '000111';
 
 (function initGate() {
-  if (sessionStorage.getItem('example_ok') === '1') {
+  if (viewMode || sessionStorage.getItem('example_ok') === '1') {
     document.getElementById('gate').remove();
     return;
   }
@@ -691,8 +733,32 @@ function handleWS(msg) {
         if (_sgBrand === brand) { if (_wasMine) renderTable(); else renderSuggestionDots(); }
       }
       break;
+    case 'add_reaction':
+      if (msg.userId !== myUserId) {
+        const rxCmt = getCmts(msg.target).find(c => c.id === msg.commentId);
+        if (rxCmt) {
+          if (!rxCmt.reactions) rxCmt.reactions = {};
+          if (!rxCmt.reactions[msg.emoji]) rxCmt.reactions[msg.emoji] = [];
+          const rxIdx = rxCmt.reactions[msg.emoji].indexOf(msg.userId);
+          if (rxIdx >= 0) rxCmt.reactions[msg.emoji].splice(rxIdx, 1);
+          else rxCmt.reactions[msg.emoji].push(msg.userId);
+          if (commentTarget === msg.target) renderCommentThread();
+        }
+      }
+      break;
   }
 }
+
+window.sortBy = function(field) {
+  if (sortState.field === field) {
+    if (sortState.dir === 1) sortState.dir = -1;
+    else { sortState.field = null; sortState.dir = 1; }
+  } else {
+    sortState.field = field;
+    sortState.dir = 1;
+  }
+  renderTable();
+};
 
 function sendWS(msg) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -1163,8 +1229,12 @@ function momBadge(curr, prev) {
 }
 
 function renderTable() {
-  document.getElementById('thead').innerHTML =
-    '<tr>' + COLS.map(c=>`<th>${c.l}</th>`).join('') + '</tr>';
+  document.getElementById('thead').innerHTML = '<tr>' + COLS.map(c => {
+    if (c.k === 'm') return `<th>${c.l}</th>`;
+    const isSorted = sortState.field === c.k;
+    const arrow = isSorted ? (sortState.dir === 1 ? '↑' : '↓') : '↕';
+    return `<th style="cursor:pointer" onclick="sortBy('${c.k}')" class="${isSorted?'th-sorted':''}">${c.l} <span class="sort-arrow">${arrow}</span></th>`;
+  }).join('') + '</tr>';
 
   const allRows = state[brand].map(compute);
 
@@ -1175,16 +1245,24 @@ function renderTable() {
     return true;
   });
 
+  // Apply sort
+  const sorted = sortState.field
+    ? [...vis].sort((a, b) => {
+        const fa = a.row[sortState.field] ?? 0, fb = b.row[sortState.field] ?? 0;
+        return (fa - fb) * sortState.dir;
+      })
+    : vis;
+
   let lastQ = null;
   let html  = '';
 
-  vis.forEach(({row, ri}) => {
+  sorted.forEach(({row, ri}) => {
     const isForecast = !!row.forecast;
     const qk         = quarterOf(row.m);
     const collapsed  = collapsedQuarters.has(qk);
 
-    // Quarter header row
-    if (qk !== lastQ) {
+    // Quarter header row — only when not sorted
+    if (!sortState.field && qk !== lastQ) {
       lastQ = qk;
       const icon = collapsed ? '+' : '−';
       html += `<tr class="q-hdr" onclick="toggleQuarter('${qk}')"><td colspan="${COLS.length}"><span class="q-icon">${icon}</span>${quarterLabel(qk)}</td></tr>`;
@@ -1197,22 +1275,31 @@ function renderTable() {
       }
     }
 
-    const trClass = [isForecast ? 'forecast-row' : '', collapsed ? 'q-hidden' : ''].filter(Boolean).join(' ');
+    const trClass = [isForecast ? 'forecast-row' : '', !sortState.field && collapsed ? 'q-hidden' : ''].filter(Boolean).join(' ');
+    const rdAttr  = viewMode ? ' readonly' : '';
     html += `<tr data-ri="${ri}" data-quarter="${qk}"${trClass ? ` class="${trClass}"` : ''}>` +
       COLS.map(col => {
         const vcls = col.cls ? col.cls(row) : '';
         if (col.k === 'm') {
-          const del = isForecast ? `<button class="del-row-btn" onclick="deleteRow(${ri})" title="Удалить">×</button>` : '';
+          const del = isForecast && !viewMode ? `<button class="del-row-btn" onclick="deleteRow(${ri})" title="Удалить">×</button>` : '';
           return `<td>${col.fmt(row)}${del}</td>`;
         }
         if (col.ed === true) {
-          const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
-          return `<td class="editable ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${col.fmt(row)}" inputmode="decimal">${badge}</td>`;
+          const badge   = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
+          const cKey    = JSON.stringify(`${brand}:${row.m}:${col.k}`);
+          const cTitle  = JSON.stringify(col.l);
+          const cSub    = JSON.stringify(monthLabel(row.m));
+          const cmtBtn  = `<button class="cmt-cell-btn" onclick="event.stopPropagation();openCommentPanel(${cKey},${cTitle},${cSub})">💬</button>`;
+          return `<td class="editable ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${col.fmt(row)}" inputmode="decimal"${rdAttr}>${badge}${cmtBtn}</td>`;
         }
         if (col.ed === 'rev') {
-          const dv = col.val ? col.val(row) : col.fmt(row);
-          const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
-          return `<td class="formula ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${dv}" inputmode="decimal">${badge}</td>`;
+          const dv      = col.val ? col.val(row) : col.fmt(row);
+          const badge   = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
+          const cKey    = JSON.stringify(`${brand}:${row.m}:${col.k}`);
+          const cTitle  = JSON.stringify(col.l);
+          const cSub    = JSON.stringify(monthLabel(row.m));
+          const cmtBtn  = `<button class="cmt-cell-btn" onclick="event.stopPropagation();openCommentPanel(${cKey},${cTitle},${cSub})">💬</button>`;
+          return `<td class="formula ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${dv}" inputmode="decimal"${rdAttr}>${badge}${cmtBtn}</td>`;
         }
         return `<td class="${vcls}">${col.fmt(row)}</td>`;
       }).join('') + '</tr>';
@@ -1475,13 +1562,15 @@ fullRefresh();
 connectWS();
 initHistory();
 
+if (viewMode) {
+  document.getElementById('view-badge')?.removeAttribute('style');
+  document.getElementById('sg-mode-btn')?.remove();
+  document.querySelectorAll('.add-forecast-btn').forEach(el => el.remove());
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  COMMENTS
 // ═══════════════════════════════════════════════════════════════
-let comments      = {};   // {target: [{id, text, author, time, replies:[]}]}
-let commentTarget = null; // currently open panel target key
-let replyingTo    = null; // comment id being replied to
-
 function cmtKey(brd, month, field) { return `${brd}:${month}:${field}`; }
 function getCmts(t)  { return comments[t] || []; }
 function hasCmts(t)  { return !!(comments[t]?.length); }
@@ -1613,6 +1702,12 @@ function renderCommentThread() {
           </div>
           <div class="cp-text">${escHtml(r.text)}</div>
         </div>`).join('')}</div>` : ''}
+      <div class="cp-reactions">${['👍','👎','❓'].map(e => {
+        const users = c.reactions?.[e] || [];
+        const isMine = users.includes(myUserId);
+        const cnt = users.length;
+        return `<button class="cp-rxn${isMine?' my-rxn':''}" onclick="toggleReaction(${JSON.stringify(c.id)},'${e}')">${e}${cnt?` <span class="rxn-cnt">${cnt}</span>`:''}</button>`;
+      }).join('')}</div>
       ${!c.resolved ? `<div style="display:flex;gap:10px;margin-top:4px">
         <button class="cp-rep-btn" onclick="startReply(${JSON.stringify(c.id)})">↩ Ответить</button>
         <button class="cp-rep-btn cp-resolve-btn" onclick="resolveComment(${JSON.stringify(c.id)})">✓ Решено</button>
@@ -1666,11 +1761,22 @@ document.getElementById('cp-ta').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); }
 });
 
+window.toggleReaction = function(commentId, emoji) {
+  if (!commentTarget) return;
+  const cmt = getCmts(commentTarget).find(c => c.id === commentId);
+  if (!cmt) return;
+  if (!cmt.reactions) cmt.reactions = {};
+  if (!cmt.reactions[emoji]) cmt.reactions[emoji] = [];
+  const idx = cmt.reactions[emoji].indexOf(myUserId);
+  if (idx >= 0) cmt.reactions[emoji].splice(idx, 1);
+  else cmt.reactions[emoji].push(myUserId);
+  sendWS({type:'add_reaction', target:commentTarget, commentId, emoji, userId:myUserId});
+  renderCommentThread();
+};
+
 // ═══════════════════════════════════════════════════════════════
 //  QUARTER GROUPING
 // ═══════════════════════════════════════════════════════════════
-let collapsedQuarters = new Set();
-
 function quarterOf(m) {
   const [y, mo] = m.split('-').map(Number);
   return `${y}-Q${Math.ceil(mo / 3)}`;
@@ -1688,8 +1794,6 @@ window.toggleQuarter = function(qk) {
 // ═══════════════════════════════════════════════════════════════
 //  FILTERS
 // ═══════════════════════════════════════════════════════════════
-let filterState = { hideForecast: false, year: 'all' };
-
 window.toggleHideForecast = function() {
   filterState.hideForecast = !filterState.hideForecast;
   document.getElementById('fc-forecast')?.classList.toggle('on', filterState.hideForecast);
@@ -1706,10 +1810,6 @@ window.setYearFilter = function(y) {
 // ═══════════════════════════════════════════════════════════════
 //  SUGGESTED EDITS
 // ═══════════════════════════════════════════════════════════════
-let suggestMode    = false;
-let suggestions    = {};
-let sgPreEditValue = null;
-
 window.toggleSuggestMode = function() {
   suggestMode = !suggestMode;
   const btn = document.getElementById('sg-mode-btn');
@@ -1807,8 +1907,6 @@ window.rejectSuggestion = function(sgId) {
 // ═══════════════════════════════════════════════════════════════
 //  RESOLVE COMMENTS
 // ═══════════════════════════════════════════════════════════════
-let showResolved = false;
-
 window.toggleShowResolved = function() {
   showResolved = !showResolved;
   renderCommentThread();

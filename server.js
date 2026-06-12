@@ -122,6 +122,18 @@ wss.on('connection', (ws) => {
         if (collabState?._suggestions) delete collabState._suggestions[msg.sgId];
         broadcast({ type: 'reject_suggest', sgId: msg.sgId, userId: user?.id }, ws);
       }
+
+      if (msg.type === 'add_reaction') {
+        const rxCmt = collabState?._comments?.[msg.target]?.find(c => c.id === msg.commentId);
+        if (rxCmt) {
+          if (!rxCmt.reactions) rxCmt.reactions = {};
+          if (!rxCmt.reactions[msg.emoji]) rxCmt.reactions[msg.emoji] = [];
+          const rxIdx = rxCmt.reactions[msg.emoji].indexOf(msg.userId);
+          if (rxIdx >= 0) rxCmt.reactions[msg.emoji].splice(rxIdx, 1);
+          else rxCmt.reactions[msg.emoji].push(msg.userId);
+        }
+        broadcast({ type: 'add_reaction', target: msg.target, commentId: msg.commentId, emoji: msg.emoji, userId: user?.id }, ws);
+      }
     } catch (_) {}
   });
 
