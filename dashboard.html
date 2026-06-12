@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Отчёт — Контекстная реклама</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
+:root{
+  --radius:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.12);
+}
+#app{max-width:1440px;margin:0 auto;padding:24px 20px}
+
+/* ── GATE ──────────────────────────────────────────────────────────────────── */
+#gate{position:fixed;inset:0;background:rgba(15,23,42,.92);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.gate-card{background:#fff;border-radius:20px;padding:48px 44px;text-align:center;max-width:380px;width:90%;box-shadow:var(--shadow-lg)}
+.gate-logo{font-size:28px;font-weight:800;color:#1e293b;margin-bottom:6px;letter-spacing:-1px}
+.gate-sub{color:#94a3b8;font-size:13px;margin-bottom:32px}
+.gate-label{font-size:12px;font-weight:600;color:#64748b;text-align:left;margin-bottom:8px;display:block}
+.gate-input{width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;letter-spacing:4px;text-align:center;outline:none;transition:border .2s;margin-bottom:16px}
+.gate-input:focus{border-color:#2563EB}
+.gate-input.error{border-color:#ef4444;animation:shake .3s}
+.gate-btn{width:100%;padding:13px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:background .18s}
+.gate-btn:hover{background:#1d4ed8}
+.gate-err{color:#ef4444;font-size:12px;margin-top:8px;min-height:18px}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* ── HEADER ────────────────────────────────────────────────────────────────── */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap}
+.header-left h1{font-size:21px;font-weight:700;color:#1e293b}
+.header-left p{color:#64748b;font-size:12px;margin-top:2px}
+.header-right{display:flex;align-items:center;gap:12px}
+
+/* User presence */
+.users-bar{display:flex;align-items:center;gap:6px}
+.user-avatar{width:32px;height:32px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);position:relative;cursor:default;flex-shrink:0}
+.user-avatar .tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:11px;padding:4px 8px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;font-weight:400}
+.user-avatar:hover .tooltip{opacity:1}
+
+/* WS status */
+.ws-status{display:flex;align-items:center;gap:6px;font-size:12px;color:#94a3b8}
+.ws-dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;transition:background .3s}
+.ws-dot.online{background:#22c55e}
+.ws-dot.connecting{background:#f59e0b;animation:pulse-dot 1s infinite}
+.ws-dot.offline{background:#ef4444}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── TABS ───────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:6px;margin-bottom:22px;background:#fff;padding:6px;border-radius:14px;box-shadow:var(--shadow);width:fit-content}
+.tab{padding:9px 22px;border:none;background:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:#64748b;transition:all .18s}
+.tab:hover{background:#f1f5f9}
+.tab.active{color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.tab[data-brand=brand_a].active{background:#2563EB}
+.tab[data-brand=brand_b].active{background:#7C3AED}
+.tab[data-brand=brand_c].active{background:#059669}
+
+/* ── KPI CARDS ──────────────────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--brand)}
+.kpi-label{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:700;color:#1e293b;line-height:1}
+.kpi-sub{font-size:11px;color:#94a3b8;margin-top:4px}
+.pos{color:#059669!important}
+.neg{color:#dc2626!important}
+.warn{color:#d97706!important}
+
+/* ── CHARTS ─────────────────────────────────────────────────────────────────── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
+.chart-card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.chart-card h3{font-size:13px;font-weight:600;color:#475569;margin-bottom:14px}
+.chart-card h3 span{font-size:11px;font-weight:400;color:#94a3b8}
+.chart-wrap{position:relative;height:260px}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr}}
+
+/* ── ANALYTICS ──────────────────────────────────────────────────────────────── */
+.analytics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+@media(max-width:1024px){.analytics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.analytics{grid-template-columns:1fr}}
+.insight-card{background:#fff;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);border-left:4px solid var(--ic,#94a3b8);display:flex;gap:12px;align-items:flex-start}
+.ins-icon{font-size:22px;flex-shrink:0;line-height:1.1}
+.ins-title{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.ins-val{font-size:20px;font-weight:700;color:var(--ic,#1e293b);line-height:1;margin-bottom:3px}
+.ins-detail{font-size:11px;color:#94a3b8;line-height:1.45}
+.insight-card.pos{--ic:#059669}.insight-card.neg{--ic:#dc2626}.insight-card.warn{--ic:#d97706}.insight-card.info{--ic:#2563EB}
+
+/* ── FORECAST ROWS ──────────────────────────────────────────────────────────── */
+tr.forecast-row td{background:#f5f3ff}
+tr.forecast-row td.editable{background:#ede9fe}
+tr.forecast-row td.formula{background:#f3f0ff}
+tr.forecast-row:hover td{background:#ede9fe}
+tr.forecast-row td:first-child{color:#6d28d9;font-style:italic}
+.del-row-btn{width:18px;height:18px;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:13px;padding:0;vertical-align:middle;border-radius:3px;transition:all .12s;margin-left:4px}
+.del-row-btn:hover{background:#fee2e2;color:#dc2626}
+.add-forecast-btn{padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.add-forecast-btn:hover{background:#6d28d9}
+.export-btn{padding:5px 12px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.export-btn:hover{background:#e2e8f0;color:#1e293b}
+
+/* ── TABLE ──────────────────────────────────────────────────────────────────── */
+.table-section{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.table-header{padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.table-header h2{font-size:14px;font-weight:600;color:#334155}
+.table-hint{font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:6px}
+.table-scroll{overflow-x:auto;max-height:520px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:#f8fafc;color:#64748b;font-weight:600;padding:9px 10px;text-align:right;white-space:nowrap;position:sticky;top:0;border-bottom:2px solid #e2e8f0;font-size:11px;letter-spacing:.3px;text-transform:uppercase;z-index:2}
+thead th:first-child{text-align:left;width:76px}
+tbody tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
+tbody tr:hover{background:#f8fafc}
+tbody td{padding:7px 10px;text-align:right;color:#334155}
+tbody td:first-child{text-align:left;font-weight:600;color:#1e293b}
+tfoot tr{border-top:2px solid #e2e8f0;background:#f8fafc;position:sticky;bottom:0;z-index:2}
+tfoot td{padding:8px 10px;text-align:right;font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap}
+tfoot td:first-child{text-align:left;color:#475569}
+tfoot td.tot-sum{color:#2563EB}
+tfoot td.tot-avg{color:#7c3aed}
+td.editable{background:#eff6ff;cursor:text;position:relative}
+td.editable:focus-within{background:#dbeafe;box-shadow:inset 0 0 0 1.5px #3b82f6}
+td.formula{background:#fefce8;cursor:text;position:relative}
+td.formula:focus-within{background:#fef9c3;box-shadow:inset 0 0 0 1.5px #eab308}
+td input{border:none;background:none;width:100%;text-align:right;font-size:12.5px;color:#1e293b;font-family:inherit;outline:none;padding:0}
+td input:focus{color:#1d4ed8}
+td.has-delta{display:flex;align-items:center;justify-content:flex-end;gap:4px}
+td.has-delta input{width:auto;flex:1;min-width:0}
+.mom-delta{font-size:10px;padding:1px 4px;border-radius:3px;white-space:nowrap;flex-shrink:0;font-weight:600}
+.mom-up{background:#dcfce7;color:#15803d}
+.mom-dn{background:#fee2e2;color:#dc2626}
+.mom-flat{background:#f1f5f9;color:#94a3b8}
+.edit-badge{display:inline-block;width:10px;height:10px;border-radius:2px;background:#dbeafe;border:1px solid #93c5fd}
+.formula-badge{display:inline-block;width:10px;height:10px;border-radius:2px;background:#fefce8;border:1px solid #fbbf24}
+/* ── HISTORY BAR ──────────────────────────────────────────────── */
+.history-bar{display:flex;align-items:center;gap:8px;background:#fff;padding:7px 12px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.hist-btn{padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc;font-size:14px;cursor:pointer;color:#334155;transition:all .15s;flex-shrink:0;line-height:1}
+.hist-btn:hover:not([disabled]){background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+.hist-btn[disabled]{opacity:.3;cursor:not-allowed}
+.hist-sep{width:1px;height:18px;background:#e2e8f0;flex-shrink:0;margin:0 2px}
+.hist-entries{display:flex;gap:3px;overflow-x:auto;flex:1;scrollbar-width:none;align-items:center;min-height:24px}
+.hist-entries::-webkit-scrollbar{display:none}
+.hist-entry{padding:3px 9px;border-radius:6px;font-size:11px;color:#94a3b8;white-space:nowrap;cursor:pointer;border:1px solid transparent;flex-shrink:0;transition:all .1s}
+.hist-entry:hover{background:#f1f5f9;color:#334155}
+.hist-entry.cur{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;font-weight:600}
+.hist-time{font-size:10px;color:#cbd5e1;margin-right:3px}
+.hist-entry.cur .hist-time{color:#93c5fd}
+/* Share */
+.share-btn{padding:6px 14px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.share-btn:hover{background:#1d4ed8}
+.share-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:9998;white-space:nowrap}
+.share-toast.show{opacity:1}
+/* Remote editor highlight */
+td.remote-edit{outline:2px solid var(--re-color);background:color-mix(in srgb, var(--re-color) 12%, white)!important}
+td.remote-edit::after{content:var(--re-name,'');position:absolute;top:-18px;left:0;background:var(--re-color);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px 4px 4px 0;white-space:nowrap;pointer-events:none;z-index:10}
+</style>
+</head>
+<body>
+
+<!-- ── PASSWORD GATE ──────────────────────────────────────────── -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">Отчёт</div>
+    <div class="gate-sub">Контекстная реклама · Яндекс Директ</div>
+    <label class="gate-label">Код доступа</label>
+    <input id="gate-input" class="gate-input" type="password" placeholder="••••••" maxlength="10" autocomplete="off">
+    <button class="gate-btn" onclick="checkPass()">Войти</button>
+    <div id="gate-err" class="gate-err"></div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ───────────────────────────────────────────────── -->
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <h1>Отчёт — Контекстная реклама</h1>
+      <p>Контекстная реклама · Яндекс Директ</p>
+    </div>
+    <div class="header-right">
+      <div class="users-bar" id="users-bar"></div>
+      <button class="share-btn" onclick="shareLink()">Поделиться ↗</button>
+      <div class="ws-status">
+        <div class="ws-dot connecting" id="ws-dot"></div>
+        <span id="ws-label">подключение…</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-brand="brand_a">Бренд A</button>
+    <button class="tab" data-brand="brand_b">Бренд B</button>
+    <button class="tab" data-brand="brand_c">Бренд C</button>
+  </nav>
+
+  <div class="history-bar" id="history-bar">
+    <button class="hist-btn" id="btn-undo" title="Отменить (Ctrl+Z)" disabled>↩</button>
+    <button class="hist-btn" id="btn-redo" title="Повторить (Ctrl+Y)" disabled>↪</button>
+    <div class="hist-sep"></div>
+    <div class="hist-entries" id="hist-entries"><span style="font-size:11px;color:#cbd5e1">история изменений</span></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="charts-grid">
+    <div class="chart-card"><h3>Расход vs Доход <span>тыс. ₽</span></h3><div class="chart-wrap"><canvas id="chart-sr"></canvas></div></div>
+    <div class="chart-card"><h3>Показы &amp; Клики <span>÷1000 / шт</span></h3><div class="chart-wrap"><canvas id="chart-ic"></canvas></div></div>
+    <div class="chart-card"><h3>ROMI &amp; ДРР <span>%</span></h3><div class="chart-wrap"><canvas id="chart-romi"></canvas></div></div>
+    <div class="chart-card"><h3>Покупки &amp; CPO <span>шт / ₽</span></h3><div class="chart-wrap"><canvas id="chart-purch"></canvas></div></div>
+  </div>
+
+  <div class="analytics" id="analytics"></div>
+
+  <div class="table-section">
+    <div class="table-header">
+      <h2>Данные по месяцам</h2>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="add-forecast-btn" onclick="addForecastRow()">+ Прогноз</button>
+        <button class="export-btn" onclick="exportCSV()">↓ CSV</button>
+        <div class="table-hint">
+          <span class="edit-badge"></span> данные &nbsp;
+          <span class="formula-badge"></span> цель &nbsp;
+          <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ede9fe;border:1px solid #a78bfa"></span> прогноз
+        </div>
+      </div>
+    </div>
+    <div class="table-scroll"><table><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table></div>
+  </div>
+</div>
+
+<div class="share-toast" id="share-toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  RAW DATA
+// ═══════════════════════════════════════════════════════════════
+const RAW = {
+  brand_a: [
+    {m:'2024-03',i:1699304,c:14073,s:184020.94,b:41.42,d:1.15,j:27, k:38, p:7,  r:28532.51},
+    {m:'2024-04',i:2984720,c:24043,s:322508.31,b:38.54,d:1.15,j:25, k:54, p:14, r:79107.19},
+    {m:'2024-05',i:3708411,c:78456,s:467078.15,b:37.78,d:1.16,j:89, k:113,p:31, r:205214.02},
+    {m:'2024-06',i:378460, c:9099, s:58064.91, b:23.69,d:1.16,j:11, k:0,  p:8,  r:40227.79},
+    {m:'2024-07',i:699196, c:10817,s:80102.84, b:28.08,d:1.16,j:21, k:21, p:8,  r:44558.59},
+    {m:'2024-08',i:840471, c:11055,s:94623.42, b:28.06,d:1.17,j:25, k:27, p:7,  r:47718.66},
+    {m:'2024-09',i:936650, c:5971, s:62277.97, b:29.07,d:1.18,j:15, k:41, p:9,  r:73927.02},
+    {m:'2024-10',i:500219, c:3660, s:50168.11, b:27.10,d:1.17,j:36, k:40, p:11, r:69068.08},
+    {m:'2024-11',i:1714199,c:12844,s:196909.75,b:25.19,d:1.37,j:114,k:110,p:56, r:319766.08},
+    {m:'2024-12',i:2013706,c:18237,s:312594.74,b:29.99,d:1.33,j:108,k:148,p:64, r:323215.98},
+    {m:'2025-01',i:1218748,c:14344,s:215771.11,b:35.36,d:1.30,j:63, k:147,p:77, r:434315.20},
+    {m:'2025-02',i:1763801,c:22584,s:274301.03,b:26.50,d:1.26,j:114,k:274,p:136,r:671605.40},
+    {m:'2025-03',i:819125, c:16376,s:284815.12,b:34.66,d:1.30,j:62, k:239,p:151,r:803365.70},
+    {m:'2025-04',i:556172, c:13493,s:197877.11,b:35.36,d:1.28,j:60, k:219,p:97, r:607089.99},
+    {m:'2025-05',i:761781, c:19186,s:273645.30,b:37.91,d:1.02,j:54, k:187,p:72, r:490280.30},
+    {m:'2025-06',i:957746, c:18312,s:345454.22,b:43.36,d:1.02,j:74, k:164,p:62, r:421698.38},
+    {m:'2025-07',i:1584071,c:17058,s:396446.11,b:46.42,d:1.09,j:83, k:241,p:121,r:828918.00},
+    {m:'2025-08',i:1375156,c:14617,s:365850.76,b:45.06,d:1.09,j:97, k:202,p:97, r:608112.90},
+    {m:'2025-09',i:924870, c:10605,s:374176.81,b:35.48,d:1.20,j:118,k:289,p:125,r:807306.41},
+    {m:'2025-10',i:1249679,c:15825,s:428819.65,b:36.68,d:1.21,j:182,k:353,p:169,r:1068188.93},
+    {m:'2025-11',i:902761, c:11617,s:411788.47,b:37.76,d:1.23,j:132,k:278,p:147,r:891834.98},
+    // ── прогноз дек 2025 – май 2026 (сезонность + YoY ~20%) ──────────────────
+    {m:'2025-12',i:1360000,c:16300,s:474000,b:37.5,d:1.25,j:170,k:340,p:185,r:900000,  forecast:true},
+    {m:'2026-01',i:1090000,c:13100,s:380000,b:37.0,d:1.28,j:145,k:285,p:150,r:870000,  forecast:true},
+    {m:'2026-02',i:1180000,c:15400,s:430000,b:30.0,d:1.30,j:155,k:360,p:178,r:1050000, forecast:true},
+    {m:'2026-03',i:1200000,c:15600,s:420000,b:34.5,d:1.33,j:78, k:300,p:182,r:1100000, forecast:true},
+    {m:'2026-04',i:660000, c:13300,s:238000,b:35.5,d:1.30,j:70, k:252,p:120,r:760000,  forecast:true},
+    {m:'2026-05',i:960000, c:21200,s:338000,b:38.0,d:1.05,j:65, k:224,p:92, r:638000,  forecast:true},
+  ],
+  brand_b: [
+    {m:'2024-02',i:1820554,c:10921,s:136005.92,b:26.40,d:1.13,j:44, k:33, p:3,  r:29310.40},
+    {m:'2024-03',i:1099965,c:8869, s:103024.48,b:31.57,d:1.15,j:33, k:33, p:5,  r:37329.37},
+    {m:'2024-04',i:1119626,c:10343,s:112711.45,b:32.35,d:1.14,j:53, k:38, p:5,  r:24025.65},
+    {m:'2024-05',i:462664, c:4971, s:54231.31, b:31.67,d:1.16,j:11, k:9,  p:1,  r:3309.47},
+    {m:'2024-06',i:923267, c:10018,s:126795.64,b:32.85,d:1.17,j:93, k:62, p:11, r:64085.06},
+    {m:'2024-07',i:6353820,c:20796,s:232237.50,b:28.13,d:1.16,j:103,k:78, p:11, r:48923.12},
+    {m:'2024-08',i:611405, c:7745, s:107118.68,b:23.93,d:1.32,j:53, k:72, p:15, r:81665.95},
+    {m:'2024-09',i:503705, c:4788, s:105594.29,b:22.57,d:1.36,j:62, k:94, p:19, r:111051.64},
+    {m:'2024-10',i:2692507,c:13162,s:199577.13,b:23.13,d:1.23,j:95, k:153,p:30, r:134457.14},
+    {m:'2024-11',i:2042365,c:11788,s:223483.56,b:22.83,d:1.47,j:122,k:113,p:48, r:277513.62},
+    {m:'2024-12',i:2746675,c:13241,s:270012.51,b:26.22,d:1.33,j:89, k:109,p:53, r:333680.70},
+    {m:'2025-01',i:2047262,c:15073,s:294935.90,b:41.86,d:1.51,j:60, k:92, p:54, r:332367.00},
+    {m:'2025-02',i:2316076,c:18783,s:348323.91,b:42.73,d:1.39,j:55, k:132,p:77, r:471811.10},
+    {m:'2025-03',i:2110026,c:20346,s:329907.97,b:45.44,d:1.56,j:54, k:121,p:93, r:652311.40},
+    {m:'2025-04',i:463964, c:7704, s:152586.96,b:39.77,d:1.30,j:30, k:76, p:61, r:395471.00},
+    {m:'2025-05',i:722779, c:14974,s:241614.79,b:45.39,d:1.01,j:39, k:98, p:58, r:397051.60},
+    {m:'2025-06',i:844290, c:13993,s:284481.80,b:49.18,d:1.02,j:45, k:74, p:32, r:224021.00},
+    {m:'2025-07',i:836090, c:10713,s:265112.78,b:48.32,d:1.11,j:46, k:103,p:43, r:314331.80},
+    {m:'2025-08',i:1181445,c:16437,s:329347.34,b:49.07,d:1.07,j:65, k:121,p:75, r:587507.22},
+    {m:'2025-09',i:1243002,c:9723, s:377526.92,b:44.12,d:1.12,j:69, k:125,p:77, r:573524.84},
+    {m:'2025-10',i:856771, c:9313, s:365214.68,b:48.88,d:1.11,j:78, k:112,p:86, r:722378.10},
+    {m:'2025-11',i:747064, c:7266, s:299589.68,b:46.02,d:1.14,j:38, k:117,p:77, r:578733.25},
+    // ── прогноз дек 2025 – май 2026 ──────────────────────────────────────────
+    {m:'2025-12',i:870000, c:9800, s:344000,b:44.5,d:1.22,j:48,k:148,p:93, r:700000, forecast:true},
+    {m:'2026-01',i:980000, c:9800, s:356000,b:41.5,d:1.50,j:55,k:100,p:62, r:620000, forecast:true},
+    {m:'2026-02',i:1150000,c:11500,s:420000,b:41.0,d:1.45,j:60,k:148,p:90, r:770000, forecast:true},
+    {m:'2026-03',i:1100000,c:11000,s:408000,b:44.0,d:1.58,j:62,k:145,p:110,r:882000, forecast:true},
+    {m:'2026-04',i:460000, c:5900, s:185000,b:39.5,d:1.35,j:33,k:85, p:66, r:477000, forecast:true},
+    {m:'2026-05',i:740000, c:11800,s:298000,b:44.0,d:1.05,j:43,k:118,p:72, r:580000, forecast:true},
+  ],
+  brand_c: [
+    {m:'2024-02',i:1820554,c:10921,s:136005.92,b:26.40,d:1.13,j:44, k:33, p:3,  r:29310.40},
+    {m:'2024-03',i:1099965,c:8869, s:103024.48,b:31.57,d:1.15,j:33, k:33, p:5,  r:37329.37},
+    {m:'2024-04',i:1119626,c:10343,s:112711.45,b:32.35,d:1.14,j:53, k:38, p:5,  r:24025.65},
+    {m:'2024-05',i:462656, c:4971, s:54231.31, b:31.67,d:1.16,j:11, k:9,  p:1,  r:3309.47},
+    {m:'2024-06',i:897889, c:8863, s:117195.09,b:32.08,d:1.15,j:82, k:52, p:11, r:64085.06},
+    {m:'2024-07',i:3987443,c:11551,s:156200.48,b:28.46,d:1.16,j:63, k:52, p:6,  r:26460.27},
+    {m:'2024-08',i:521081, c:4821, s:76558.96, b:24.49,d:1.31,j:44, k:59, p:12, r:68921.59},
+    {m:'2024-09',i:463994, c:3716, s:71513.58, b:20.17,d:1.34,j:51, k:87, p:16, r:96838.20},
+    {m:'2024-10',i:2628801,c:11278,s:168516.19,b:22.66,d:1.21,j:79, k:123,p:24, r:102654.30},
+    {m:'2024-11',i:1952186,c:9867, s:176144.19,b:22.04,d:1.51,j:105,k:107,p:39, r:234854.21},
+    {m:'2024-12',i:2366208,c:10699,s:217213.20,b:25.03,d:9.85,j:81, k:98, p:48, r:270376.70},
+    {m:'2025-01',i:1500979,c:9887, s:213938.54,b:39.61,d:1.65,j:46, k:74, p:43, r:254425.00},
+    {m:'2025-02',i:1065421,c:8305, s:172697.10,b:45.34,d:1.63,j:39, k:75, p:48, r:326296.60},
+    {m:'2025-03',i:850605, c:9623, s:186507.46,b:44.46,d:1.94,j:40, k:85, p:61, r:449712.40},
+    {m:'2025-04',i:430909, c:6533, s:103188.18,b:40.51,d:1.29,j:20, k:50, p:30, r:228629.00},
+    {m:'2025-05',i:376639, c:10849,s:158630.90,b:42.56,d:1.02,j:30, k:69, p:42, r:282706.00},
+    {m:'2025-06',i:518515, c:9371, s:175285.97,b:47.18,d:1.02,j:33, k:46, p:21, r:163730.00},
+    {m:'2025-07',i:508574, c:7271, s:168373.00,b:47.45,d:1.13,j:31, k:74, p:28, r:203128.80},
+    {m:'2025-08',i:714413, c:10888,s:214153.49,b:45.36,d:1.08,j:35, k:81, p:46, r:364121.22},
+    {m:'2025-09',i:773002, c:5833, s:242007.85,b:42.76,d:1.15,j:48, k:81, p:52, r:391699.44},
+    {m:'2025-10',i:526996, c:5205, s:219480.19,b:44.50,d:1.15,j:58, k:71, p:52, r:430415.10},
+    {m:'2025-11',i:473713, c:4113, s:184474.49,b:44.67,d:1.15,j:26, k:67, p:50, r:379392.65},
+    // ── прогноз дек 2025 – май 2026 ──────────────────────────────────────────
+    {m:'2025-12',i:530000, c:5600, s:212000,b:42.5,d:1.18,j:32,k:88, p:57,r:436000, forecast:true},
+    {m:'2026-01',i:540000, c:5200, s:200000,b:39.5,d:1.68,j:50,k:78, p:50,r:380000, forecast:true},
+    {m:'2026-02',i:480000, c:4600, s:195000,b:44.0,d:1.68,j:46,k:92, p:58,r:448000, forecast:true},
+    {m:'2026-03',i:500000, c:5400, s:215000,b:43.0,d:1.95,j:48,k:102,p:72,r:540000, forecast:true},
+    {m:'2026-04',i:330000, c:6700, s:125000,b:40.0,d:1.32,j:24,k:60, p:36,r:285000, forecast:true},
+    {m:'2026-05',i:420000, c:12200,s:195000,b:41.0,d:1.05,j:36,k:83, p:52,r:388000, forecast:true},
+  ],
+};
+
+const BRAND_META = {
+  brand_a:   {label:'Бренд A', color:'#2563EB', mid:'#93C5FD'},
+  brand_b: {label:'Бренд B', color:'#7C3AED', mid:'#C4B5FD'},
+  brand_c:   {label:'Бренд C', color:'#059669', mid:'#6EE7B7'},
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  COMPUTED
+// ═══════════════════════════════════════════════════════════════
+function compute(row) {
+  const ctr  = row.i > 0  ? row.c / row.i * 100 : 0;
+  const cpc  = row.c > 0  ? row.s / row.c : 0;
+  const drr  = row.r > 0  ? row.s / row.r * 100 : 0;
+  const romi = row.s > 0  ? (row.r - row.s) / row.s * 100 : 0;
+  const cpo  = row.p > 0  ? row.s / row.p : 0;
+  const avg  = row.p > 0  ? row.r / row.p : 0;
+  return {...row, ctr, cpc, drr, romi, cpo, avg};
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let brand = 'brand_a';
+let state = {};
+for (const k in RAW) state[k] = RAW[k].map(r => ({...r}));
+
+const charts = {};
+const remoteEditors = {}; // key="brand_ri_field" → {userId,color,name}
+
+// ═══════════════════════════════════════════════════════════════
+//  HISTORY (UNDO / REDO)
+// ═══════════════════════════════════════════════════════════════
+const hist = [];
+let histPos = -1;
+
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+function hNow() { return new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); }
+
+function initHistory() {
+  hist.length = 0;
+  hist.push({state: deepClone(state), label:'Начало', time: hNow()});
+  histPos = 0;
+  renderHistoryPanel();
+}
+
+function pushHistory(label) {
+  if (histPos < hist.length - 1) hist.splice(histPos + 1);
+  hist.push({state: deepClone(state), label, time: hNow()});
+  if (hist.length > 21) hist.shift();
+  histPos = hist.length - 1;
+  renderHistoryPanel();
+}
+
+function undo() {
+  if (histPos <= 0) return;
+  histPos--;
+  state = deepClone(hist[histPos].state);
+  fullRefresh();
+  sendWS({type:'state_restore', state});
+  renderHistoryPanel();
+}
+
+function redo() {
+  if (histPos >= hist.length - 1) return;
+  histPos++;
+  state = deepClone(hist[histPos].state);
+  fullRefresh();
+  sendWS({type:'state_restore', state});
+  renderHistoryPanel();
+}
+
+window.restoreFromHistory = function(pos) {
+  if (pos < 0 || pos >= hist.length) return;
+  histPos = pos;
+  state = deepClone(hist[histPos].state);
+  fullRefresh();
+  sendWS({type:'state_restore', state});
+  renderHistoryPanel();
+};
+
+function renderHistoryPanel() {
+  const undoBtn = document.getElementById('btn-undo');
+  const redoBtn = document.getElementById('btn-redo');
+  const entries = document.getElementById('hist-entries');
+  if (!entries) return;
+  if (undoBtn) undoBtn.disabled = histPos <= 0;
+  if (redoBtn) redoBtn.disabled = histPos >= hist.length - 1;
+  entries.innerHTML = hist.map((h, i) => `
+    <div class="hist-entry${i===histPos?' cur':''}" onclick="restoreFromHistory(${i})">
+      <span class="hist-time">${h.time}</span>${h.label}
+    </div>`).join('');
+  const cur = entries.querySelector('.cur');
+  if (cur) cur.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'});
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod) return;
+  if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redo(); }
+});
+
+// ─── Share link ─────────────────────────────────────────────────
+window.shareLink = function() {
+  const url = location.origin + (location.pathname.includes('/example') ? '/example/' : location.pathname);
+  navigator.clipboard?.writeText(url).catch(()=>{});
+  const t = document.getElementById('share-toast');
+  if (!t) return;
+  t.textContent = `Ссылка скопирована → ${url}  ·  Пароль: 000111`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  PASSWORD GATE
+// ═══════════════════════════════════════════════════════════════
+const PASS = '000111';
+
+(function initGate() {
+  if (sessionStorage.getItem('example_ok') === '1') {
+    document.getElementById('gate').remove();
+    return;
+  }
+  const inp = document.getElementById('gate-input');
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') checkPass(); });
+  inp.focus();
+})();
+
+window.checkPass = function() {
+  const val = document.getElementById('gate-input').value.trim();
+  if (val === PASS) {
+    sessionStorage.setItem('example_ok', '1');
+    document.getElementById('gate').remove();
+  } else {
+    const inp = document.getElementById('gate-input');
+    inp.classList.add('error');
+    document.getElementById('gate-err').textContent = 'Неверный код';
+    setTimeout(() => inp.classList.remove('error'), 600);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  WEBSOCKET
+// ═══════════════════════════════════════════════════════════════
+let ws = null;
+let myUserId = null;
+
+function wsUrl() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const basePath = location.pathname.startsWith('/example') ? '/example/ws' : '/ws';
+  return `${proto}//${location.host}${basePath}`;
+}
+
+function setWsDot(cls, label) {
+  const dot = document.getElementById('ws-dot');
+  const lbl = document.getElementById('ws-label');
+  if (dot) { dot.className = 'ws-dot ' + cls; }
+  if (lbl) { lbl.textContent = label; }
+}
+
+function connectWS() {
+  setWsDot('connecting', 'подключение…');
+  try { ws = new WebSocket(wsUrl()); } catch(_) { setWsDot('offline','офлайн'); return; }
+
+  ws.onopen = () => {
+    setWsDot('online', 'онлайн');
+    ws.send(JSON.stringify({type:'push_state', state}));
+  };
+
+  ws.onclose = () => {
+    setWsDot('offline', 'офлайн');
+    setTimeout(connectWS, 4000);
+  };
+
+  ws.onerror = () => setWsDot('offline', 'офлайн');
+
+  ws.onmessage = (e) => {
+    try { handleWS(JSON.parse(e.data)); } catch(_) {}
+  };
+}
+
+function handleWS(msg) {
+  switch (msg.type) {
+    case 'welcome':
+      myUserId = msg.me?.id;
+      if (msg.state) { state = msg.state; fullRefresh(); }
+      renderUsers(msg.users || []);
+      initHistory();
+      break;
+    case 'users':
+      renderUsers(msg.users || []);
+      break;
+    case 'edit':
+      if (msg.userId !== myUserId) applyRemoteEdit(msg.brand, msg.ri, msg.field, msg.value);
+      break;
+    case 'focus':
+      if (msg.user?.id !== myUserId) setRemoteEditor(msg.brand, msg.ri, msg.field, msg.user);
+      break;
+    case 'blur':
+      if (msg.userId !== myUserId) clearRemoteEditor(msg.brand, msg.ri, msg.field);
+      break;
+    case 'state_restore':
+      if (msg.userId !== myUserId) {
+        state = msg.state;
+        initHistory();
+        fullRefresh();
+      }
+      break;
+    case 'add_forecast_row':
+      if (msg.userId !== myUserId) {
+        state[msg.brand].push(msg.row);
+        if (msg.brand === brand) { renderTable(); renderKPIs(); updateChartsInPlace(); }
+      }
+      break;
+    case 'delete_forecast_row':
+      if (msg.userId !== myUserId) {
+        state[msg.brand].splice(msg.ri, 1);
+        if (msg.brand === brand) { renderTable(); renderKPIs(); updateChartsInPlace(); }
+      }
+      break;
+  }
+}
+
+function sendWS(msg) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+}
+
+// ── Remote editor highlighting ─────────────────────────────────
+function remoteKey(b, ri, f) { return `${b}_${ri}_${f}`; }
+
+function setRemoteEditor(b, ri, field, user) {
+  if (!user) return;
+  const key = remoteKey(b, ri, field);
+  remoteEditors[key] = user;
+  if (b !== brand) return;
+  const td = document.querySelector(`#tbody tr[data-ri="${ri}"] td[data-field="${field}"]`);
+  if (td) applyEditorStyle(td, user);
+}
+
+function clearRemoteEditor(b, ri, field) {
+  const key = remoteKey(b, ri, field);
+  delete remoteEditors[key];
+  if (b !== brand) return;
+  const td = document.querySelector(`#tbody tr[data-ri="${ri}"] td[data-field="${field}"]`);
+  if (td) { td.classList.remove('remote-edit'); td.removeAttribute('style'); }
+}
+
+function applyEditorStyle(td, user) {
+  td.classList.add('remote-edit');
+  td.style.setProperty('--re-color', user.color);
+  td.style.setProperty('--re-name', `"${user.name}"`);
+}
+
+function restoreRemoteEditors() {
+  // Re-apply highlights after table re-render
+  for (const [key, user] of Object.entries(remoteEditors)) {
+    const [b, ri, field] = key.split('_');
+    if (b !== brand) continue;
+    const td = document.querySelector(`#tbody tr[data-ri="${ri}"] td[data-field="${field}"]`);
+    if (td) applyEditorStyle(td, user);
+  }
+}
+
+// ── Apply incoming edit without full re-render ─────────────────
+function applyRemoteEdit(b, ri, field, value) {
+  state[b][ri][field] = value;
+  if (b !== brand) return; // different tab — state updated, no UI needed
+
+  // Update input value if not focused by us
+  const inp = document.querySelector(`#tbody tr[data-ri="${ri}"] td[data-field="${field}"] input`);
+  if (inp && document.activeElement !== inp) inp.value = value;
+
+  // Patch computed cells in that row
+  const row = compute(state[b][ri]);
+  const tr = document.querySelector(`#tbody tr[data-ri="${ri}"]`);
+  if (tr) patchComputedCells(tr, row);
+
+  updateChartsInPlace();
+  renderKPIs();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  USER PRESENCE
+// ═══════════════════════════════════════════════════════════════
+function renderUsers(users) {
+  const bar = document.getElementById('users-bar');
+  if (!bar) return;
+  bar.innerHTML = users.map(u => `
+    <div class="user-avatar" style="background:${u.color}">
+      ${u.name.charAt(0)}
+      <span class="tooltip">${u.name}</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════
+const fmt = {
+  num:  v => isNaN(v)||v==null ? '—' : v.toLocaleString('ru-RU'),
+  rub:  v => isNaN(v)||v==null ? '—' : Math.round(v).toLocaleString('ru-RU') + ' ₽',
+  pct:  v => isNaN(v)||v==null ? '—' : v.toFixed(1) + '%',
+  dec:  v => isNaN(v)||v==null ? '—' : v.toFixed(2),
+};
+
+function monthLabel(m) {
+  const [y,mo] = m.split('-');
+  return ['','янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][+mo] + ' ' + y.slice(2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  KPI CARDS
+// ═══════════════════════════════════════════════════════════════
+function renderKPIs() {
+  const rows  = state[brand].map(compute);
+  const meta  = BRAND_META[brand];
+  const tot   = rows.reduce((a,r) => ({i:a.i+r.i,c:a.c+r.c,s:a.s+r.s,p:a.p+r.p,r:a.r+r.r}), {i:0,c:0,s:0,p:0,r:0});
+  const romi  = tot.s > 0 ? (tot.r - tot.s) / tot.s * 100 : 0;
+  const drr   = tot.r > 0 ? tot.s / tot.r * 100 : 0;
+  const ctr   = tot.i > 0 ? tot.c / tot.i * 100 : 0;
+  const cpo   = tot.p > 0 ? tot.s / tot.p : 0;
+
+  const kpis = [
+    {l:'Показы',  v:fmt.num(Math.round(tot.i/1000))+'k', s:''},
+    {l:'Клики',   v:fmt.num(tot.c),  s:'CTR '+fmt.pct(ctr)},
+    {l:'Расход',  v:fmt.rub(tot.s),  s:''},
+    {l:'Доход',   v:fmt.rub(tot.r),  s:''},
+    {l:'Покупки', v:fmt.num(tot.p),  s:'CPO '+fmt.rub(cpo)},
+    {l:'ROMI',    v:fmt.pct(romi),   s:'доход vs расход', cls:romi>=0?'pos':'neg'},
+    {l:'ДРР',     v:fmt.pct(drr),    s:'расход/доход',    cls:drr<=100?'pos':'neg'},
+    {l:'Ср. чек', v:fmt.rub(tot.r/tot.p), s:''},
+  ];
+
+  document.getElementById('kpis').innerHTML = kpis.map(k => `
+    <div class="kpi" style="--brand:${meta.color}">
+      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-value ${k.cls||''}">${k.v}</div>
+      ${k.s ? `<div class="kpi-sub">${k.s}</div>` : ''}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ANALYTICS
+// ═══════════════════════════════════════════════════════════════
+function renderAnalytics() {
+  const cont = document.getElementById('analytics');
+  if (!cont) return;
+  const rows = state[brand].map(compute);
+  if (rows.length < 2) { cont.innerHTML = ''; return; }
+  const n = rows.length;
+
+  // Aggregates
+  const tot = rows.reduce((a,r) => ({s:a.s+r.s,r:a.r+r.r,c:a.c+r.c,p:a.p+r.p,i:a.i+r.i}), {s:0,r:0,c:0,p:0,i:0});
+  const totalROMI = tot.s > 0 ? (tot.r-tot.s)/tot.s*100 : 0;
+  const totalDRR  = tot.r > 0 ? tot.s/tot.r*100 : 0;
+
+  // Last 3 vs prev 3 revenue
+  const last3 = rows.slice(Math.max(0,n-3));
+  const prev3 = rows.slice(Math.max(0,n-6), Math.max(0,n-3));
+  const last3r = last3.reduce((a,r)=>a+r.r,0);
+  const prev3r = prev3.reduce((a,r)=>a+r.r,0);
+  const revGrowth = prev3r > 0 ? (last3r-prev3r)/prev3r*100 : null;
+
+  // Last 3 vs prev 3 spend
+  const last3s = last3.reduce((a,r)=>a+r.s,0);
+  const prev3s = prev3.reduce((a,r)=>a+r.s,0);
+  const spendGrowth = prev3s > 0 ? (last3s-prev3s)/prev3s*100 : null;
+
+  // Best month
+  const bestRev = rows.reduce((a,b) => b.r>a.r ? b : a);
+
+  // Avg DRR last 3
+  const avgDRR = last3.reduce((a,r)=>a+r.drr,0)/last3.length;
+
+  // CPO dynamics
+  const cpoLast = rows[n-1].cpo;
+  const cpoPrev = n>=4 ? rows.slice(n-4,n-1).reduce((a,r)=>a+r.cpo,0)/3 : (n>=2?rows[n-2].cpo:cpoLast);
+  const cpoChg  = cpoPrev>0 ? (cpoLast-cpoPrev)/cpoPrev*100 : 0;
+
+  // Conversion click→purchase
+  const avgConv  = tot.c>0 ? tot.p/tot.c*100 : 0;
+  const lastConv = rows[n-1].c>0 ? rows[n-1].p/rows[n-1].c*100 : 0;
+
+  const cards = [
+    revGrowth !== null ? {
+      cls: revGrowth>=0?'pos':'neg', icon: revGrowth>=0?'📈':'📉',
+      title:'Тренд дохода (3 мес.)',
+      val: (revGrowth>=0?'+':'')+revGrowth.toFixed(1)+'%',
+      detail: `${fmt.rub(last3r)} vs ${fmt.rub(prev3r)} пред. период${spendGrowth!==null?' · расход '+(spendGrowth>=0?'+':'')+spendGrowth.toFixed(1)+'%':''}`,
+    } : null,
+    {
+      cls: totalROMI>=0?'pos':'neg', icon:'💹',
+      title:'ROMI за весь период',
+      val: fmt.pct(totalROMI),
+      detail:`Доход ${fmt.rub(tot.r)} · Расход ${fmt.rub(tot.s)}`,
+    },
+    {
+      cls:'info', icon:'🏆',
+      title:'Лучший месяц по доходу',
+      val: fmt.rub(bestRev.r),
+      detail:`${monthLabel(bestRev.m)} · ROMI ${fmt.pct(bestRev.romi)} · Покупки ${bestRev.p}`,
+    },
+    {
+      cls: avgDRR<=80?'pos':avgDRR<=100?'warn':'neg',
+      icon: avgDRR<=80?'✅':avgDRR<=100?'⚠️':'🚨',
+      title:'Средний ДРР (3 мес.)',
+      val: fmt.pct(avgDRR),
+      detail:`Всего: ${fmt.pct(totalDRR)} · Цель: до 80%`,
+    },
+    {
+      cls: cpoChg<=0?'pos':'neg', icon: cpoChg<=0?'🎯':'📊',
+      title:'CPO последний месяц',
+      val: fmt.rub(cpoLast),
+      detail:`${cpoChg<=0?'↓':'↑'} ${Math.abs(cpoChg).toFixed(1)}% vs сред. 3 мес · Покупок: ${fmt.num(tot.p)}`,
+    },
+    {
+      cls:'info', icon:'🔄',
+      title:'Конверсия клик → покупка',
+      val: fmt.pct(avgConv),
+      detail:`Последний мес: ${fmt.pct(lastConv)} · Кликов всего: ${fmt.num(tot.c)}`,
+    },
+  ].filter(Boolean);
+
+  cont.innerHTML = cards.map(c=>`
+    <div class="insight-card ${c.cls}">
+      <div class="ins-icon">${c.icon}</div>
+      <div>
+        <div class="ins-title">${c.title}</div>
+        <div class="ins-val">${c.val}</div>
+        <div class="ins-detail">${c.detail}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FORECAST ROWS
+// ═══════════════════════════════════════════════════════════════
+function nextMonth(m) {
+  const [y, mo] = m.split('-').map(Number);
+  return mo===12 ? `${y+1}-01` : `${y}-${String(mo+1).padStart(2,'0')}`;
+}
+
+window.exportCSV = function() {
+  const rows = state[brand].map(compute);
+  const header = COLS.map(c => '"' + c.l.replace(/"/g,'""') + '"').join(',');
+  const body = rows.map(row => COLS.map(col => {
+    if (col.k === 'm') return '"' + (row.forecast ? '[прогноз] ' : '') + monthLabel(row.m) + '"';
+    let v;
+    if (col.ed === 'rev') {
+      v = col.val ? col.val(row) : col.fmt(row);
+    } else {
+      v = col.fmt(row);
+    }
+    const s = String(v).replace(/\s/g,'');
+    return isNaN(parseFloat(s)) ? '"' + String(v).replace(/"/g,'""') + '"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob(['﻿' + header + '\n' + body], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'report-' + brand + '-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+window.addForecastRow = function() {
+  const rows = state[brand];
+  if (!rows.length) return;
+  const last = rows[rows.length-1];
+  const nm   = nextMonth(last.m);
+  const newRow = {...last, m: nm, forecast: true};
+  state[brand].push(newRow);
+  renderTable(); renderKPIs(); updateChartsInPlace(); renderAnalytics();
+  document.querySelector('#tbody tr:last-child')?.scrollIntoView({behavior:'smooth', block:'nearest'});
+  sendWS({type:'add_forecast_row', brand, row: newRow});
+  pushHistory(`${BRAND_META[brand].label} · ${monthLabel(nm)} · прогноз`);
+};
+
+window.deleteRow = function(ri) {
+  if (!state[brand][ri]?.forecast) return;
+  const m = state[brand][ri].m;
+  state[brand].splice(ri, 1);
+  renderTable(); renderKPIs(); updateChartsInPlace(); renderAnalytics();
+  sendWS({type:'delete_forecast_row', brand, ri});
+  pushHistory(`${BRAND_META[brand].label} · ${monthLabel(m)} · прогноз удалён`);
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════════════════
+const CD = { // chart defaults
+  animation:{duration:320},
+  plugins:{legend:{labels:{font:{size:11},boxWidth:12,padding:10}}},
+  scales:{
+    x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},
+    y:{grid:{color:'#f1f5f9'},ticks:{font:{size:10}}},
+  },
+};
+
+function makeChart(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), cfg);
+}
+
+// Index of first forecast row (for chart styling)
+function forecastSplitIdx(rows) {
+  const i = rows.findIndex(r => r.forecast);
+  return i === -1 ? rows.length : i;
+}
+
+// Per-point bar color arrays: lighter fill for forecast bars
+function barColors(rows, si, hist, fore) {
+  return rows.map((_,i) => i >= si ? fore : hist);
+}
+
+// Chart.js 4 segment callback: dashed line for forecast segments
+function lineSeg(si) {
+  return { borderDash: ctx => ctx.p0DataIndex >= si ? [6,3] : undefined };
+}
+
+function renderCharts() {
+  const rows = state[brand].map(compute);
+  const {color:c, mid} = BRAND_META[brand];
+  const labels = rows.map(r => monthLabel(r.m));
+  const si = forecastSplitIdx(rows);
+
+  makeChart('chart-sr', {type:'bar', data:{labels, datasets:[
+    {label:'Расход', type:'bar',  data:rows.map(r=>+(r.s/1000).toFixed(1)),
+     backgroundColor:barColors(rows,si,c+'33',c+'18'), borderColor:barColors(rows,si,c,c+'66'),
+     borderWidth:1.5, borderRadius:4},
+    {label:'Доход',  type:'line', data:rows.map(r=>+(r.r/1000).toFixed(1)),
+     borderColor:'#22c55e', backgroundColor:'#22c55e22', fill:true, tension:.4,
+     pointRadius:3, borderWidth:2, segment:lineSeg(si)},
+  ]}, options:{...CD, interaction:{intersect:false,mode:'index'},
+    scales:{...CD.scales,y:{...CD.scales.y,title:{display:true,text:'тыс. ₽',font:{size:10}}}}}});
+
+  makeChart('chart-ic', {type:'bar', data:{labels, datasets:[
+    {label:'Показы ÷1000', type:'bar',  data:rows.map(r=>+(r.i/1000).toFixed(0)),
+     backgroundColor:barColors(rows,si,mid+'88',mid+'33'), borderColor:barColors(rows,si,mid,mid+'66'),
+     borderWidth:1, borderRadius:4, yAxisID:'y'},
+    {label:'Клики',        type:'line', data:rows.map(r=>r.c),
+     borderColor:c, pointRadius:3, borderWidth:2, yAxisID:'y1', tension:.4, segment:lineSeg(si)},
+  ]}, options:{...CD, interaction:{intersect:false,mode:'index'},
+    scales:{x:CD.scales.x,
+      y: {...CD.scales.y,position:'left', title:{display:true,text:'тыс.',font:{size:10}}},
+      y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10}},title:{display:true,text:'клики',font:{size:10}}}}}});
+
+  makeChart('chart-romi', {type:'line', data:{labels, datasets:[
+    {label:'ROMI %', data:rows.map(r=>+r.romi.toFixed(1)),
+     borderColor:'#22c55e', fill:false, tension:.4, pointRadius:3, borderWidth:2, segment:lineSeg(si)},
+    {label:'ДРР %',  data:rows.map(r=>+r.drr.toFixed(1)),
+     borderColor:'#f59e0b', fill:false, tension:.4, pointRadius:3, borderWidth:2, segment:lineSeg(si)},
+  ]}, options:{...CD, interaction:{intersect:false,mode:'index'},
+    scales:{...CD.scales,y:{...CD.scales.y,title:{display:true,text:'%',font:{size:10}}}}}});
+
+  makeChart('chart-purch', {type:'bar', data:{labels, datasets:[
+    {label:'Покупки', type:'bar',  data:rows.map(r=>r.p),
+     backgroundColor:barColors(rows,si,c+'55',c+'20'), borderColor:barColors(rows,si,c,c+'66'),
+     borderWidth:1, borderRadius:4, yAxisID:'y'},
+    {label:'CPO ₽',   type:'line', data:rows.map(r=>+r.cpo.toFixed(0)),
+     borderColor:'#ef4444', pointRadius:3, borderWidth:2, yAxisID:'y1', tension:.4, segment:lineSeg(si)},
+  ]}, options:{...CD, interaction:{intersect:false,mode:'index'},
+    scales:{x:CD.scales.x,
+      y: {...CD.scales.y,position:'left', title:{display:true,text:'шт',font:{size:10}}},
+      y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10}},title:{display:true,text:'₽',font:{size:10}}}}}});
+}
+
+// Update chart data WITHOUT destroying charts (prevents flicker during collab)
+function updateChartsInPlace() {
+  const rows = state[brand].map(compute);
+  const {color:c, mid} = BRAND_META[brand];
+  const labels = rows.map(r => monthLabel(r.m));
+  const si = forecastSplitIdx(rows);
+
+  if (charts['chart-sr']) {
+    const ch = charts['chart-sr'];
+    ch.data.labels = labels;
+    ch.data.datasets[0].data = rows.map(r=>+(r.s/1000).toFixed(1));
+    ch.data.datasets[0].backgroundColor = barColors(rows,si,c+'33',c+'18');
+    ch.data.datasets[0].borderColor = barColors(rows,si,c,c+'66');
+    ch.data.datasets[1].data = rows.map(r=>+(r.r/1000).toFixed(1));
+    ch.update('none');
+  }
+  if (charts['chart-ic']) {
+    const ch = charts['chart-ic'];
+    ch.data.labels = labels;
+    ch.data.datasets[0].data = rows.map(r=>+(r.i/1000).toFixed(0));
+    ch.data.datasets[0].backgroundColor = barColors(rows,si,mid+'88',mid+'33');
+    ch.data.datasets[0].borderColor = barColors(rows,si,mid,mid+'66');
+    ch.data.datasets[1].data = rows.map(r=>r.c);
+    ch.update('none');
+  }
+  if (charts['chart-romi']) {
+    const ch = charts['chart-romi'];
+    ch.data.labels = labels;
+    ch.data.datasets[0].data = rows.map(r=>+r.romi.toFixed(1));
+    ch.data.datasets[1].data = rows.map(r=>+r.drr.toFixed(1));
+    ch.update('none');
+  }
+  if (charts['chart-purch']) {
+    const ch = charts['chart-purch'];
+    ch.data.labels = labels;
+    ch.data.datasets[0].data = rows.map(r=>r.p);
+    ch.data.datasets[0].backgroundColor = barColors(rows,si,c+'55',c+'20');
+    ch.data.datasets[0].borderColor = barColors(rows,si,c,c+'66');
+    ch.data.datasets[1].data = rows.map(r=>+r.cpo.toFixed(0));
+    ch.update('none');
+  }
+  renderAnalytics();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TABLE
+// ═══════════════════════════════════════════════════════════════
+const COLS = [
+  {k:'m',   l:'Месяц',     ed:false, fmt:r=>monthLabel(r.m)},
+  // Показы ↔ Клики: меняешь Показы → CTR сохраняется → Клики масштабируются
+  {k:'i', l:'Показы', ed:true, fmt:r=>r.i,
+    linked: (v,row) => row.i>0 ? {c: Math.round(v*row.c/row.i)} : {},
+    linkedFields: ['c']},
+  // Клики ↔ Расход: меняешь Клики → CPC сохраняется → Расход масштабируется
+  {k:'c', l:'Клики', ed:true, fmt:r=>r.c,
+    linked: (v,row) => row.c>0 ? {s: Math.round(v*row.s/row.c)} : {},
+    linkedFields: ['s']},
+  // CTR: задать цель → пересчитать Клики
+  {k:'ctr', l:'CTR',       ed:'rev',
+    fmt:   r=>fmt.pct(r.ctr),
+    val:   r=>r.ctr.toFixed(2),
+    parse: v=>parseFloat(v.replace('%','')),
+    rev:   (v,row)=>({c: Math.round(row.i * v/100)}),
+    deps:  ['c'],
+    cls:   r=>r.ctr>1?'pos':r.ctr<0.5?'warn':''},
+  // Расход ↔ Клики: меняешь Расход → CPC сохраняется → Клики масштабируются
+  {k:'s', l:'Расход ₽', ed:true, fmt:r=>Math.round(r.s),
+    linked: (v,row) => row.s>0 ? {c: Math.round(v*row.c/row.s)} : {},
+    linkedFields: ['c']},
+  // CPC: задать цель → пересчитать Расход
+  {k:'cpc', l:'CPC ₽',     ed:'rev',
+    fmt:   r=>fmt.dec(r.cpc),
+    val:   r=>r.cpc.toFixed(2),
+    parse: v=>parseFloat(v),
+    rev:   (v,row)=>({s: Math.round(row.c * v)}),
+    deps:  ['s']},
+  {k:'b',   l:'Отказы %',  ed:true,  fmt:r=>r.b, cls:r=>r.b>40?'neg':r.b<30?'pos':'warn'},
+  {k:'d',   l:'Глубина',   ed:true,  fmt:r=>r.d.toFixed(2)},
+  {k:'j',   l:'Jivo',      ed:true,  fmt:r=>r.j},
+  {k:'k',   l:'Корзины',   ed:true,  fmt:r=>r.k},
+  {k:'p',   l:'Покупки',   ed:true,  fmt:r=>r.p},
+  {k:'r',   l:'Доход ₽',   ed:true,  fmt:r=>Math.round(r.r)},
+  // ДРР: задать цель → пересчитать Доход
+  {k:'drr', l:'ДРР %',     ed:'rev',
+    fmt:   r=>fmt.pct(r.drr),
+    val:   r=>r.drr.toFixed(1),
+    parse: v=>parseFloat(v.replace('%','')),
+    rev:   (v,row)=>({r: v>0 ? Math.round(row.s/(v/100)) : row.r}),
+    deps:  ['r'],
+    cls:   r=>r.drr<80?'pos':r.drr>120?'neg':'warn'},
+  // ROMI: задать цель → пересчитать Доход
+  {k:'romi',l:'ROMI %',    ed:'rev',
+    fmt:   r=>fmt.pct(r.romi),
+    val:   r=>r.romi.toFixed(1),
+    parse: v=>parseFloat(v.replace('%','')),
+    rev:   (v,row)=>({r: Math.round(row.s*(1+v/100))}),
+    deps:  ['r'],
+    cls:   r=>r.romi>=0?'pos':'neg'},
+  // CPO: задать цель → пересчитать Расход
+  {k:'cpo', l:'CPO ₽',     ed:'rev',
+    fmt:   r=>fmt.num(Math.round(r.cpo)),
+    val:   r=>Math.round(r.cpo),
+    parse: v=>parseFloat(v.replace(/\s/g,'')),
+    rev:   (v,row)=>({s: Math.round(row.p*v)}),
+    deps:  ['s']},
+  // Ср. чек: задать цель → пересчитать Доход
+  {k:'avg', l:'Ср. чек ₽', ed:'rev',
+    fmt:   r=>fmt.num(Math.round(r.avg)),
+    val:   r=>Math.round(r.avg),
+    parse: v=>parseFloat(v.replace(/\s/g,'')),
+    rev:   (v,row)=>({r: Math.round(row.p*v)}),
+    deps:  ['r']},
+];
+
+const MOM_COLS = new Set(['s','r','p','romi']);
+
+function momBadge(curr, prev) {
+  if (prev == null || prev === 0) return '';
+  const delta = (curr - prev) / Math.abs(prev) * 100;
+  if (Math.abs(delta) < 1) return '';
+  return delta > 0
+    ? `<span class="mom-delta mom-up">↑ ${Math.round(delta)}%</span>`
+    : `<span class="mom-delta mom-dn">↓ ${Math.round(Math.abs(delta))}%</span>`;
+}
+
+function renderTable() {
+  document.getElementById('thead').innerHTML =
+    '<tr>' + COLS.map(c=>`<th>${c.l}</th>`).join('') + '</tr>';
+
+  const rows = state[brand].map(compute);
+  document.getElementById('tbody').innerHTML = rows.map((row, ri) => {
+    const isForecast = !!row.forecast;
+    const trCls = isForecast ? ' class="forecast-row"' : '';
+    // Previous non-forecast row for MoM delta
+    let prevRow = null;
+    if (!isForecast) {
+      for (let j = ri - 1; j >= 0; j--) {
+        if (!rows[j].forecast) { prevRow = rows[j]; break; }
+      }
+    }
+    return `<tr data-ri="${ri}"${trCls}>${COLS.map(col => {
+      const vcls = col.cls ? col.cls(row) : '';
+      if (col.k === 'm') {
+        const del = isForecast ? `<button class="del-row-btn" onclick="deleteRow(${ri})" title="Удалить">×</button>` : '';
+        return `<td>${col.fmt(row)}${del}</td>`;
+      }
+      if (col.ed === true) {
+        const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
+        return `<td class="editable ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${col.fmt(row)}" inputmode="decimal">${badge}</td>`;
+      }
+      if (col.ed === 'rev') {
+        const dv = col.val ? col.val(row) : col.fmt(row);
+        const badge = MOM_COLS.has(col.k) ? momBadge(row[col.k], prevRow?.[col.k]) : '';
+        return `<td class="formula ${vcls}${badge?' has-delta':''}" data-field="${col.k}"><input type="text" value="${dv}" inputmode="decimal">${badge}</td>`;
+      }
+      return `<td class="${vcls}">${col.fmt(row)}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+
+  // Attach events
+  document.querySelectorAll('#tbody input').forEach(inp => {
+    inp.addEventListener('input',   onCellInput);
+    inp.addEventListener('keydown', onCellKeydown);
+    inp.addEventListener('change',  onCellEdit);
+    inp.addEventListener('focus',   onCellFocus);
+    inp.addEventListener('blur',    onCellBlur);
+  });
+
+  renderTotals(rows);
+  restoreRemoteEditors();
+}
+
+function renderTotals(rows) {
+  const data = rows.filter(r => !r.forecast);
+  if (!data.length) { document.getElementById('tfoot').innerHTML = ''; return; }
+  const sumI = data.reduce((a,r)=>a+r.i, 0);
+  const sumC = data.reduce((a,r)=>a+r.c, 0);
+  const sumS = data.reduce((a,r)=>a+r.s, 0);
+  const sumR = data.reduce((a,r)=>a+r.r, 0);
+  const sumP = data.reduce((a,r)=>a+r.p, 0);
+  const sumK = data.reduce((a,r)=>a+r.k, 0);
+  const sumJ = data.reduce((a,r)=>a+r.j, 0);
+  const avgB = data.reduce((a,r)=>a+r.b, 0) / data.length;
+  const avgD = data.reduce((a,r)=>a+r.d, 0) / data.length;
+  const totCtr  = sumI ? (sumC/sumI*100) : 0;
+  const totCpc  = sumC ? (sumS/sumC) : 0;
+  const totDrr  = sumR ? (sumS/sumR*100) : 0;
+  const totRomi = sumS ? ((sumR-sumS)/sumS*100) : 0;
+  const totCpo  = sumP ? (sumS/sumP) : 0;
+  const totAvg  = sumP ? (sumR/sumP) : 0;
+  const cells = [
+    `<td>Итого (${data.length} мес.)</td>`,
+    `<td class="tot-sum">${fmt.num(Math.round(sumI))}</td>`,
+    `<td class="tot-sum">${fmt.num(Math.round(sumC))}</td>`,
+    `<td class="tot-avg">${totCtr.toFixed(2)}%</td>`,
+    `<td class="tot-sum">${fmt.num(Math.round(sumS))}</td>`,
+    `<td class="tot-avg">${fmt.dec(totCpc)}</td>`,
+    `<td class="tot-avg">${avgB.toFixed(1)}</td>`,
+    `<td class="tot-avg">${avgD.toFixed(2)}</td>`,
+    `<td class="tot-sum">${sumJ}</td>`,
+    `<td class="tot-sum">${sumK}</td>`,
+    `<td class="tot-sum">${sumP}</td>`,
+    `<td class="tot-sum">${fmt.num(Math.round(sumR))}</td>`,
+    `<td class="tot-avg ${totDrr<80?'pos':totDrr>120?'neg':'warn'}">${totDrr.toFixed(1)}%</td>`,
+    `<td class="tot-avg ${totRomi>=0?'pos':'neg'}">${totRomi.toFixed(1)}%</td>`,
+    `<td class="tot-avg">${fmt.num(Math.round(totCpo))}</td>`,
+    `<td class="tot-avg">${fmt.num(Math.round(totAvg))}</td>`,
+  ];
+  document.getElementById('tfoot').innerHTML = '<tr>' + cells.join('') + '</tr>';
+}
+
+// Patch formula cells in a row (no re-render of raw inputs)
+function patchComputedCells(tr, row) {
+  COLS.forEach((col, ci) => {
+    if (col.ed !== 'rev') return;
+    const td = tr.children[ci];
+    if (!td) return;
+    const inp = td.querySelector('input');
+    if (inp && document.activeElement !== inp) {
+      inp.value = col.val ? col.val(row) : col.fmt(row);
+    }
+    td.className = 'formula ' + (col.cls ? col.cls(row) : '');
+  });
+}
+
+// Парсит инпут и обновляет state + UI.
+// Для rev-ячеек: goal-seek (target → обратный пересчёт raw-полей).
+// Для raw-ячеек: прямое обновление.
+function _applyInput(inp, tr, ri, field) {
+  const col = COLS.find(c => c.k === field);
+  if (!col) return null;
+  const rawStr = inp.value.replace(/\s/g,'').replace(',','.');
+
+  if (col.ed === 'rev') {
+    const target = col.parse ? col.parse(rawStr) : parseFloat(rawStr);
+    if (isNaN(target)) return null;
+    const updates = col.rev(target, state[brand][ri]);
+    if (!updates) return null;
+    Object.assign(state[brand][ri], updates);
+    const row = compute(state[brand][ri]);
+    patchComputedCells(tr, row);
+    // Обновить raw-инпуты которые изменились
+    for (const [f, v] of Object.entries(updates)) {
+      const rawInp = tr.querySelector(`td[data-field="${f}"] input`);
+      if (rawInp && document.activeElement !== rawInp) rawInp.value = v;
+    }
+    updateChartsInPlace();
+    renderKPIs();
+    renderTotals(state[brand].map(compute));
+    return {rev: true, updates};
+  }
+
+  const val = parseFloat(rawStr);
+  if (isNaN(val)) return null;
+  const prevRow = {...state[brand][ri]}; // снимок до правки (нужен для linked-расчёта)
+  state[brand][ri][field] = val;
+  const linked = col.linked ? col.linked(val, prevRow) : {};
+  Object.assign(state[brand][ri], linked);
+  const row = compute(state[brand][ri]);
+  patchComputedCells(tr, row);
+  // Обновить инпуты связанных raw-полей
+  for (const [f, v] of Object.entries(linked)) {
+    const lInp = tr.querySelector(`td[data-field="${f}"] input`);
+    if (lInp && document.activeElement !== lInp) lInp.value = v;
+  }
+  updateChartsInPlace();
+  renderKPIs();
+  renderTotals(state[brand].map(compute));
+  return {val, linked};
+}
+
+// Мгновенный пересчёт при каждом нажатии клавиши (без WS-broadcast)
+function onCellInput(e) {
+  const tr    = e.target.closest('tr');
+  const td    = e.target.closest('td');
+  const ri    = +tr.dataset.ri;
+  const field = td.dataset.field;
+  _applyInput(e.target, tr, ri, field);
+}
+
+// Enter: зафиксировать, отправить WS и перейти к следующей строке
+function onCellKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const tr    = e.target.closest('tr');
+  const td    = e.target.closest('td');
+  const ri    = +tr.dataset.ri;
+  const field = td.dataset.field;
+  const result = _applyInput(e.target, tr, ri, field);
+  if (result !== null) {
+    if (result?.rev && result?.updates) {
+      for (const [f, v] of Object.entries(result.updates))
+        sendWS({type:'edit', brand, ri, field: f, value: v});
+    } else if (result?.val !== undefined) {
+      sendWS({type:'edit', brand, ri, field, value: result.val});
+      for (const [f, v] of Object.entries(result.linked || {}))
+        sendWS({type:'edit', brand, ri, field: f, value: v});
+    }
+  }
+  const nextInp = document.querySelector(`#tbody tr[data-ri="${ri+1}"] td[data-field="${field}"] input`);
+  if (nextInp) { nextInp.focus(); nextInp.select(); }
+  else e.target.blur();
+}
+
+// WS-broadcast при потере фокуса (финальное значение)
+function onCellEdit(e) {
+  const tr    = e.target.closest('tr');
+  const td    = e.target.closest('td');
+  const ri    = +tr.dataset.ri;
+  const field = td.dataset.field;
+  const col   = COLS.find(c => c.k === field);
+
+  const histLabel = `${BRAND_META[brand].label} · ${monthLabel(state[brand][ri].m)} · ${col?.l || field}`;
+
+  if (col?.ed === 'rev') {
+    const rawStr = e.target.value.replace(/\s/g,'').replace(',','.');
+    const target = col.parse ? col.parse(rawStr) : parseFloat(rawStr);
+    const row = compute(state[brand][ri]);
+    if (isNaN(target)) {
+      e.target.value = col.val ? col.val(row) : col.fmt(row);
+      return;
+    }
+    for (const f of (col.deps || []))
+      sendWS({type:'edit', brand, ri, field: f, value: state[brand][ri][f]});
+    e.target.value = col.val ? col.val(row) : col.fmt(row);
+    pushHistory(histLabel);
+    return;
+  }
+
+  const raw   = e.target.value.replace(/\s/g,'').replace(',','.');
+  const val   = parseFloat(raw);
+  if (isNaN(val)) { e.target.value = state[brand][ri][field]; return; }
+  state[brand][ri][field] = val;
+  sendWS({type:'edit', brand, ri, field, value: val});
+  for (const f of (col?.linkedFields || []))
+    sendWS({type:'edit', brand, ri, field: f, value: state[brand][ri][f]});
+  pushHistory(histLabel);
+}
+
+function onCellFocus(e) {
+  const td    = e.target.closest('td');
+  const tr    = e.target.closest('tr');
+  const ri    = +tr.dataset.ri;
+  const field = td.dataset.field;
+  sendWS({type:'focus', brand, ri, field});
+}
+
+function onCellBlur(e) {
+  const td    = e.target.closest('td');
+  const tr    = e.target.closest('tr');
+  const ri    = +tr.dataset.ri;
+  const field = td.dataset.field;
+  sendWS({type:'blur', brand, ri, field});
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FULL REFRESH vs SURGICAL UPDATE
+// ═══════════════════════════════════════════════════════════════
+function fullRefresh() {
+  renderKPIs();
+  renderCharts();
+  renderTable();
+  renderAnalytics();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    brand = btn.dataset.brand;
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    fullRefresh();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+fullRefresh();
+connectWS();
+initHistory();
+</script>
+</body>
+</html>
